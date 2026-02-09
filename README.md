@@ -13,3 +13,30 @@ An early-stage AI-powered learning platform that helps teachers understand where
 - Teachers see aggregated learning gaps
 
 - Teaching improves based on actual student struggles
+
+## 🚀 Quick Start
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Start the development server
+
+```bash
+npm run dev
+```
+
+### 4. Open your browser and visit
+
+```bash
+http://localhost:5173
+```
