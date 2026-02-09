@@ -1,10 +1,10 @@
-### 📚 AI-Based Personalized Learning Platform
+# 📚 AI-Based Personalized Learning Platform
 
 An early-stage AI-powered learning platform that helps teachers understand where students struggle and gives students instant, contextual help while studying.
 
-# 🧠 Project Goal
+## 🧠 Project Goal
 
-- To build a personalized learning loop:
+To build a personalized learning loop where:
 
 - Students study and ask questions
 
