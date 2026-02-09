@@ -19,7 +19,7 @@ An early-stage AI-powered learning platform that helps teachers understand where
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/ShriyaAl/AI_Personalized_Learning_Platform.git
 cd your-repo-name
 ```
 
