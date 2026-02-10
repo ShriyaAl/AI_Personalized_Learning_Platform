@@ -19,8 +19,7 @@ To build a personalized learning loop where:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ShriyaAl/AI_Personalized_Learning_Platform.git
-cd your-repo-name
+git clone https://github.com/ShriyaAl/AI_Personalized_Learning_Platform.git ./
 ```
 
 ### 2. Install dependencies
