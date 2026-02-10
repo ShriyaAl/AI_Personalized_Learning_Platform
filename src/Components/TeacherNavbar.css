@@ -1,0 +1,74 @@
+/* ============================================
+   TEACHER NAVBAR STYLING
+   ============================================ */
+
+.teacher-navbar {
+  background-color: #000;
+  padding: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.navbar-container {
+  display: flex;
+  gap: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.navbar-item {
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 20px 32px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  position: relative;
+  transition: all 0.3s ease;
+  letter-spacing: 0.3px;
+}
+
+.navbar-item:hover {
+  color: #00a8ff;
+  opacity: 0.9;
+}
+
+.navbar-item.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.navbar-underline {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00a8ff 0%, #00a8ff 100%);
+  border-radius: 2px 2px 0 0;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    width: 0;
+    left: 50%;
+  }
+  to {
+    width: 100%;
+    left: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar-item {
+    padding: 16px 20px;
+    font-size: 0.9rem;
+  }
+
+  .navbar-container {
+    padding: 0 16px;
+  }
+}

@@ -9,14 +9,21 @@ import Tutor from './Pages/Student/Tutor'
 import Discuss from './Pages/Student/Discuss'
 import Profile from './Pages/Student/Profile'
 import Login from './Pages/Login'
+import TeacherHome from "./Pages/Teacher/TeacherHome/TeacherHome"
+import ManageCourses from "./Pages/Teacher/Manage/ManageCourses"
+import ManageStudents from "./Pages/Teacher/Manage/ManageStudents"
+import ManageGroups from "./Pages/Teacher/Manage/ManageGroups"
+import ManageMaterials from "./Pages/Teacher/Manage/ManageMaterials"
+import ManageQuizzes from './Pages/Teacher/Manage/ManageQuizzes'
 
 import CourseModules from './Pages/Student/ui/CourseModules'
 
 const AppContent = () => {
   const location = useLocation();
 
-  // Identify if we are in the "Student Zone"
-  const isStudentPage = location.pathname.includes('-student');
+  // Identify if we are in the "Student Zone" - must have -student suffix
+  const isStudentPage = /-student(\/|$)/.test(location.pathname);
+  
 
   return (
     <main className={isStudentPage ? "min-h-screen bg-black flex flex-col" : ""}>
@@ -41,7 +48,12 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<div className="text-black">Landing Page</div>} />
           <Route path="/login" element={<Login />} />
-          <Route path="/teacher-home" element={<div className="text-black">Teacher Dashboard</div>} />
+          <Route path="/teacher-home" element={<TeacherHome/>} />
+          <Route path="/manage-courses" element={<ManageCourses/>} />
+          <Route path="/manage-students" element={<ManageStudents/>} />
+          <Route path="/manage-groups" element={<ManageGroups/>} />
+          <Route path="/manage-materials" element={<ManageMaterials/>} />
+          <Route path="/manage-quizzes" element={<ManageQuizzes/>} />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
