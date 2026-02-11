@@ -9,12 +9,16 @@ import Tutor from './Pages/Student/Tutor'
 import Discuss from './Pages/Student/Discuss'
 import Profile from './Pages/Student/Profile'
 import Login from './Pages/Login'
+import LandingPage from './Pages/LandingPage'
 import TeacherHome from "./Pages/Teacher/TeacherHome/TeacherHome"
 import ManageCourses from "./Pages/Teacher/Manage/ManageCourses"
 import ManageStudents from "./Pages/Teacher/Manage/ManageStudents"
 import ManageGroups from "./Pages/Teacher/Manage/ManageGroups"
 import ManageMaterials from "./Pages/Teacher/Manage/ManageMaterials"
 import ManageQuizzes from './Pages/Teacher/Manage/ManageQuizzes'
+import Analytics from "./Pages/Teacher/Analytics/Analytics"
+import DiscussionForum from "./Pages/Teacher/DiscussionForum/DiscussionForum"
+import TeacherProfile from "./Pages/Teacher/Profile/Profile"
 
 import CourseModules from './Pages/Student/ui/CourseModules'
 
@@ -46,7 +50,7 @@ const AppContent = () => {
         </section>
       ) : (
         <Routes>
-          <Route path="/" element={<div className="text-black">Landing Page</div>} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/teacher-home" element={<TeacherHome/>} />
           <Route path="/manage-courses" element={<ManageCourses/>} />
@@ -54,6 +58,9 @@ const AppContent = () => {
           <Route path="/manage-groups" element={<ManageGroups/>} />
           <Route path="/manage-materials" element={<ManageMaterials/>} />
           <Route path="/manage-quizzes" element={<ManageQuizzes/>} />
+          <Route path="/teacher-analytics" element={<Analytics/>} />
+          <Route path="/teacher-discussion" element={<DiscussionForum/>} />
+          <Route path="/teacher-profile" element={<TeacherProfile/>} />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

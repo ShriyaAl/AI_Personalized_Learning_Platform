@@ -15,7 +15,7 @@ const TeacherHome = () => {
             </div>
             <div className="profile-info">
               <p className="profile-name">John Doe</p>
-              <p className="profile-email">john@example.com</p>
+              <p className="profile-email">john.doe@school.edu</p>
               <div className="profile-badge">Teacher</div>
             </div>
           </div>

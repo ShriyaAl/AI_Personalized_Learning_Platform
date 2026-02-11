@@ -9,8 +9,9 @@ const TeacherNavbar = ({ activeTab = 'dashboard' }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/teacher-home' },
     { id: 'manage', label: 'Manage', path: '/manage-courses' },
-    { id: 'analytics', label: 'Analytics', path: '/analytics' },
-    { id: 'forum', label: 'Discussion Forum', path: '/discussion-forum' },
+    { id: 'analytics', label: 'Analytics', path: '/teacher-analytics' },
+    { id: 'forum', label: 'Discussion Forum', path: '/teacher-discussion' },
+    { id: 'profile', label: 'Profile', path: '/teacher-profile' },
   ];
 
   const handleNavClick = (item) => {
@@ -26,6 +27,7 @@ const TeacherNavbar = ({ activeTab = 'dashboard' }) => {
             key={item.id}
             className={`navbar-item ${active === item.id ? 'active' : ''}`}
             onClick={() => handleNavClick(item)}
+            style={item.id === 'profile' ? { marginLeft: 'auto' } : {}}
           >
             {item.label}
             {active === item.id && <span className="navbar-underline"></span>}
