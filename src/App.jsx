@@ -21,6 +21,7 @@ import DiscussionForum from "./Pages/Teacher/DiscussionForum/DiscussionForum"
 import TeacherProfile from "./Pages/Teacher/Profile/Profile"
 
 import CourseModules from './Pages/Student/ui/CourseModules'
+import LessonView from './Pages/Student/ui/LessonView'
 
 const AppContent = () => {
   const location = useLocation();
@@ -46,6 +47,7 @@ const AppContent = () => {
             <Route path="/tutor-student" element={<Tutor />} />
             <Route path="/discuss-student" element={<Discuss />} />
             <Route path="/profile-student" element={<Profile />} />
+            <Route path="/learn-student/:courseId/:subModuleId" element={<LessonView />} />
           </Routes>
         </section>
       ) : (

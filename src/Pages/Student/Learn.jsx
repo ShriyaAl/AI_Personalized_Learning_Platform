@@ -10,16 +10,18 @@ const Learn = () => {
   };
 
   return (
-    <div className="p-8 bg-[#fdfdfd] overflow-y-auto h-full scrollbar-hide font-mono">
+    <div className="p-8 bg-[#fdfdfd] overflow-y-auto h-full scrollbar-hide font-mono relative">
+      {/* Background Grid - Fixed with lower z-index */}
       <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" 
         style={{
           backgroundImage: `repeating-linear-gradient(0deg, #000 0px, #000 1px, transparent 1px, transparent 40px),
                            repeating-linear-gradient(90deg, #000 0px, #000 1px, transparent 1px, transparent 40px)`
         }}
       />
+
       {/* Header Row */}
-      <div className="mb-10">
+      <div className="mb-10 relative z-10">
         <h1 className="text-6xl font-black text-black tracking-tight underline decoration-[#FFD93D] decoration-8 underline-offset-8">
           My Classroom
         </h1>
@@ -29,7 +31,7 @@ const Learn = () => {
       </div>
 
       {/* --- Search Bar Section --- */}
-      <div className="mb-12 max-w-8xl relative">
+      <div className="mb-12 max-w-8xl relative z-10">
         <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none z-10">
           <span className="text-2xl">🔍</span>
         </div>
@@ -42,7 +44,7 @@ const Learn = () => {
         />
       </div>
 
-      <div className="space-y-16">
+      <div className="space-y-16 relative z-10">
         {/* Subject Group: Science */}
         <SubjectGroup title="Science & Nature" color="bg-[#98EECC]">
           <CourseCard 
@@ -54,12 +56,13 @@ const Learn = () => {
             courseId="botany-plants"
             onClick={handleCourseClick}
           />
+          {/* This is the course linked to your Roadmap completion logic */}
           <CourseCard 
             title="States of Matter" 
             faculty="Prof. Kelvin" 
             icon="🧪" 
             cardColor="bg-[#E1F8DC]" 
-            progress={67}
+            progress={67} 
             courseId="states-of-matter"
             onClick={handleCourseClick}
           />
@@ -127,8 +130,16 @@ const SubjectGroup = ({ title, children, color }) => (
 );
 
 const CourseCard = ({ title, faculty, icon, cardColor, progress, courseId, onClick }) => {
-  const isCompleted = progress === 100;
-  const isStarted = progress > 0 && progress < 100;
+  // 1. Updated logic to check for the SPECIFIC course completion flag from LessonView
+  const isMastered = 
+    courseId === 'states-of-matter' && 
+    localStorage.getItem('pinnacle_course_states_completed') === 'true';
+  
+  // 2. Override progress ONLY for the mastered course
+  const currentProgress = isMastered ? 100 : progress;
+  
+  const isCompleted = currentProgress === 100;
+  const isStarted = currentProgress > 0 && currentProgress < 100;
   const buttonText = isCompleted ? "REVIEW" : isStarted ? "CONTINUE" : "START";
 
   return (
@@ -136,42 +147,52 @@ const CourseCard = ({ title, faculty, icon, cardColor, progress, courseId, onCli
       onClick={() => onClick(courseId)}
       className={`${cardColor} border-[4px] border-black rounded-[35px] p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-2 hover:translate-x-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group cursor-pointer relative`}
     >
-      {isCompleted && (
+      {/* Badge only shows for the specific mastered course */}
+      {isMastered && (
+        <div className="absolute -top-4 -right-4 bg-[#98EECC] border-4 border-black px-4 py-1 rounded-xl rotate-12 font-black text-black text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 animate-bounce">
+          MASTERED 🏆
+        </div>
+      )}
+
+      {isCompleted && !isMastered && (
         <div className="absolute -top-3 -right-3 w-12 h-12 bg-[#FFD93D] border-3 border-black rounded-full flex items-center justify-center text-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rotate-12 z-10 animate-pulse">
           ⭐
         </div>
       )}
-      <div className="flex flex-col gap-4">
+
+      <div className="flex flex-col gap-4 text-black">
         <div className="flex justify-between items-start">
           <div className="w-20 h-20 bg-white border-[4px] border-black rounded-[25px] flex items-center justify-center text-5xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-hover:rotate-6 transition-transform">
             {icon}
           </div>
           {isStarted && !isCompleted && (
             <div className="bg-black text-white px-2 py-1 rounded-lg text-[10px] font-black rotate-3">
-              {progress}% DONE
+              {currentProgress}% DONE
             </div>
           )}
         </div>
         <div>
-          <h3 className="text-2xl font-black leading-tight mb-1">{title}</h3>
-          <p className="text-sm font-bold text-gray-600 italic uppercase tracking-tighter">Faculty: {faculty}</p>
+          <h3 className="text-2xl font-black leading-tight mb-1 uppercase tracking-tighter italic">{title}</h3>
+          <p className="text-sm font-bold text-gray-700 italic uppercase tracking-tighter">Faculty: {faculty}</p>
         </div>
+
         <div className="mt-2 w-full bg-white border-[3px] border-black h-6 rounded-full overflow-hidden p-0.5 shadow-inner">
           <div 
-            className={`${isCompleted ? 'bg-[#4ADE80]' : 'bg-[#8E24AA]'} h-full rounded-full border-r-2 border-black transition-all duration-1000`} 
-            style={{ width: `${progress}%` }}
+            className={`${isCompleted ? 'bg-[#4ADE80]' : 'bg-[#8E24AA]'} h-full rounded-full border-r-2 border-black transition-all duration-1000 ease-out`} 
+            style={{ width: `${currentProgress}%` }}
           />
         </div>
+
         <div className="mt-2 pt-4 border-t-2 border-black border-dashed flex justify-between items-center">
           <span className={`text-[10px] font-black uppercase tracking-widest italic ${isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
-            {isCompleted ? 'Finished!' : 'In Progress'}
+            {isCompleted ? 'Course Mastered!' : 'In Progress'}
           </span>
           <button 
             onClick={(e) => {
-              e.stopPropagation(); // Prevent double navigation if you add button-specific logic later
+              e.stopPropagation();
               onClick(courseId);
             }}
-            className={`px-6 py-2 rounded-xl font-black text-sm border-2 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-1 active:translate-x-1 ${
+            className={`px-6 py-2 rounded-xl font-black text-sm border-2 border-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-1 active:translate-x-1 uppercase italic ${
               isCompleted 
               ? 'bg-white text-black hover:bg-gray-100' 
               : 'bg-black text-white hover:bg-white hover:text-black'
