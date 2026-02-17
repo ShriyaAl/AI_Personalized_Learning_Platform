@@ -23,6 +23,8 @@ import TeacherProfile from "./Pages/Teacher/Profile/Profile"
 import CourseModules from './Pages/Student/ui/CourseModules'
 import LessonView from './Pages/Student/ui/LessonView'
 
+import { AuthProvider } from './utils/auth/AuthContext'
+
 const AppContent = () => {
   const location = useLocation();
 
@@ -73,9 +75,11 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   )
 }
 
