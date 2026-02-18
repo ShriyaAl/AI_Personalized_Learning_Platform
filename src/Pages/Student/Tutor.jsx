@@ -12,7 +12,7 @@ if (!API_KEY) {
   console.log("Key is there only")
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY);
+const genAI = new GoogleGenerativeAI(API_KEY, { location: "us-central1" });
 
 const Tutor = () => {
   const [input, setInput] = useState("");
