@@ -14,7 +14,7 @@ To build a personalized learning loop where:
 
 - Teaching improves based on actual student struggles
 
-## 🚀 Quick Start
+# 🚀 Setting Up
 
 ### 1. Clone the repository
 
@@ -42,14 +42,45 @@ npm install
   VITE_GEMINI_API_KEY=your_actual_key_here
   ```
 
-### 4. Start the development server
+### 4. In another terminal:
+``` bash
+  cd backend
+  npm install
+  ```
+
+## Backend Setup (Firebase Admin)
+
+1. Go to Firebase Console.
+
+2. Project Settings > Service Accounts.
+
+3. Click Generate New Private Key.
+
+4. Rename the downloaded file to firebaseAdmin.json and move it to backend/config/.
+
+## Frontend Setup (Firebase Client)
+
+1. Go to Firebase Console > Project Settings > General.
+
+2. Scroll to "Your apps" and copy the firebaseConfig object.
+
+3. Save it as firebaseClient.json in src/config/.
+
+
+### 5. Start the development server in one terminal
 
 ```bash
 npm run dev
 ```
 
-### 5. Open your browser and visit
+### 6. Open your browser and visit
 
 ```bash
 http://localhost:5173
+```
+
+### 7. In the terminal having the backend as present working directory
+
+```bash
+node app.js
 ```
