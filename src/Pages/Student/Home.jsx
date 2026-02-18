@@ -1,6 +1,30 @@
 import React from 'react';
+import { useEffect } from 'react';
+import { auth } from '../../utils/auth/initalizers/firebaseClient.js';
+
 
 const Home = () => {
+  useEffect(() => {
+    const verifyConnection = async () => {
+      const user = auth.currentUser;
+      
+      if (user) {
+        try {
+          const token = await user.getIdToken(true);
+          const response = await fetch('http://localhost:3000/api/test/verify-me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await response.json();
+          console.log("✅ Backend Auth Verified:", data);
+        } catch (err) {
+          console.error("❌ Backend Auth Failed:", err);
+        }
+      }
+    };
+
+    verifyConnection();
+  }, []);
+
   return (
     <div className="p-8 bg-[#fdfdfd] overflow-y-auto h-full scrollbar-hide font-mono">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
