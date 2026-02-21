@@ -66,14 +66,20 @@ npm install
 
 3. Save it as firebaseClient.json in src/config/.
 
+### 5. Set up Supabase variables in .env file within backend folder
 
-### 5. Start the development server in one terminal
+``` bash
+DATABASE_URL =
+DATABSE_KEY =
+```
+
+### 6. Start the development server in one terminal
 
 ```bash
 npm run dev
 ```
 
-### 6. Open your browser and visit
+### 7. Open your browser and visit
 
 ```bash
 http://localhost:5173
