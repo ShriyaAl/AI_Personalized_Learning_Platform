@@ -6,8 +6,10 @@ import cookieParser from 'cookie-parser';
 
 import { createClient } from '@supabase/supabase-js';
 
+import { adminDb } from './db/firebaseAdmin.js';
+
 dotenv.config();
-const supabase = createClient(process.env.DATABASE_URL,process.env.DATABASE_KEY);
+const supabase = createClient(process.env.DATABASE_URL, process.env.DATABASE_KEY);
 
 const app = express();
 
@@ -24,15 +26,61 @@ app.get('/', (req, res) => {
     res.send("Backend set up");
 });
 
-// Get all articles
+// --- SUPABASE API ROUTES ---
 
-app.get("/articles", async (_, response) => {
+// Get all courses
+app.get("/api/courses", async (req, res) => {
   try {
-    const { data, error } = await supabase.from("Posts").select();
-    console.log(data);
-    return response.send(data);
+    const { data, error } = await supabase.from("courses").select("*");
+    if (error) throw error;
+    res.json(data);
   } catch (error) {
-    return response.send({ error });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user profile (Supabase + Firebase Auth UID)
+app.get("/api/users/:uid", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("uid", req.params.uid)
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- FIRESTORE API ROUTES ---
+
+// Get User Streaks
+app.get("/api/streaks/:userId", async (req, res) => {
+  try {
+    const doc = await adminDb.collection("streaks").doc(req.params.userId).get();
+    if (!doc.exists) return res.json({ streakCount: 0, xp: 0, lightning: 0 });
+    res.json(doc.data());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create AI Tutor Session
+app.post("/api/sessions", async (req, res) => {
+  try {
+    const sessionData = {
+      userId: req.body.userId,
+      courseId: req.body.courseId,
+      title: req.body.title || "New Session",
+      status: "active",
+      startedAt: new Date()
+    };
+    const docRef = await adminDb.collection("sessions").add(sessionData);
+    res.json({ id: docRef.id, ...sessionData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

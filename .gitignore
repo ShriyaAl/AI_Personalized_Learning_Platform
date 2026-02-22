@@ -24,5 +24,11 @@ dist-ssr
 *.sw?
 
 .env
+*.local
 
+# Firebase configs
+firebaseAdmin.json
+firebaseClient.json
+
+# Local config directories
 config/

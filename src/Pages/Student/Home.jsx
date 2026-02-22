@@ -1,13 +1,53 @@
-import React from 'react';
-import { useEffect } from 'react';
-import { auth } from '../../utils/auth/initalizers/firebaseClient.js';
-
+import React, { useEffect, useState } from 'react';
+import { auth, db } from '../../utils/auth/initalizers/firebaseClient.js';
+import { supabase } from '../../utils/supabaseClient.js';
+import { collection, doc, getDoc, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 const Home = () => {
+  const [courses, setCourses] = useState([]);
+  const [streak, setStreak] = useState({ streakCount: 0, xp: 0, lightning: 0 });
+  const [activity, setActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
+    const fetchData = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        // 1. Fetch Courses from Supabase
+        const { data: coursesData, error: coursesError } = await supabase
+          .from('courses')
+          .select('*')
+          .limit(3);
+        if (coursesError) throw coursesError;
+        setCourses(coursesData || []);
+
+        // 2. Fetch Streaks from Firestore
+        const streakDoc = await getDoc(doc(db, 'streaks', user.uid));
+        if (streakDoc.exists()) {
+          setStreak(streakDoc.data());
+        }
+
+        // 3. Fetch Activity from Firestore
+        const activityQuery = query(
+          collection(db, 'activity', user.uid, 'feed'),
+          orderBy('timestamp', 'desc'),
+          limit(3)
+        );
+        const activitySnap = await getDocs(activityQuery);
+        setActivity(activitySnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+      } catch (err) {
+        console.error("❌ Error fetching dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const verifyConnection = async () => {
       const user = auth.currentUser;
-      
       if (user) {
         try {
           const token = await user.getIdToken(true);
@@ -22,6 +62,7 @@ const Home = () => {
       }
     };
 
+    fetchData();
     verifyConnection();
   }, []);
 
@@ -42,14 +83,14 @@ const Home = () => {
             className="text-6xl font-black text-black tracking-tight" 
             style={{ filter: 'drop-shadow(4px 4px 0px #e2e2e2)' }}
           >
-            Welcome back, Alexa!
+            Welcome back, {auth.currentUser?.displayName || 'Student'}!
           </h1>
           <p className="text-gray-500 mt-2 font-bold uppercase tracking-widest text-sm italic">
             Ready to doodle some knowledge?
           </p>
         </div>
         <div className="flex gap-4">
-          <StatMiniCard count="17" label="Courses" color="bg-[#FF8B8B]" />
+          <StatMiniCard count={courses.length} label="Courses" color="bg-[#FF8B8B]" />
           <StatMiniCard count="2" label="Classrooms" color="bg-[#79E0EE]" />
           <StatMiniCard count="7" label="Challenges" color="bg-[#98EECC]" />
         </div>
@@ -57,57 +98,50 @@ const Home = () => {
 
       <div className="grid grid-cols-3 gap-8">
         <div className="col-span-2 space-y-8">
-          <CourseCard 
-            title="States of matter" 
-            chapter="Chapter 3" 
-            progress={67} 
-            color="bg-[#F3B8F8]"
-            accent="bg-[#D397C5]"
-            image="🧪" 
-          />
-          <CourseCard 
-            title="Algebra" 
-            chapter="Chapter 4" 
-            progress={75} 
-            color="bg-[#C3ACD0]"
-            accent="bg-[#A084CA]"
-            image="🔢" 
-          />
+          {loading ? (
+            <div className="text-2xl font-black">Loading your courses...</div>
+          ) : courses.length > 0 ? (
+            courses.map((course, index) => (
+              <CourseCard 
+                key={course.id}
+                title={course.title} 
+                chapter={course.subject || "Introduction"} 
+                progress={index === 0 ? 67 : 0} // Mock progress for now
+                color={index === 0 ? "bg-[#F3B8F8]" : "bg-[#C3ACD0]"}
+                accent={index === 0 ? "bg-[#D397C5]" : "bg-[#A084CA]"}
+                image={index === 0 ? "🧪" : "🔢"} 
+              />
+            ))
+          ) : (
+            <div className="text-2xl font-black">No courses enrolled yet.</div>
+          )}
           
-
           <div className="bg-[#EA62D8] rounded-[45px] border-[5px] border-black p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
-          
-            
             <h2 className="text-4xl font-black mb-6 italic underline decoration-black underline-offset-4">
               Recent Activity
             </h2>
             
             <div className="space-y-4">
-              <ActivityItem 
-                type="completed" 
-                text="Finished 'Atomic Structure' Quiz" 
-                time="2h ago" 
-                points="+50 XP" 
-              />
-              <ActivityItem 
-                type="milestone" 
-                text="Achieved 3-Day Streak!" 
-                time="5h ago" 
-                points="+100 XP" 
-              />
-              <ActivityItem 
-                type="started" 
-                text="Started 'Linear Equations' Chapter" 
-                time="Yesterday" 
-                points="" 
-              />
+              {activity.length > 0 ? (
+                activity.map(item => (
+                  <ActivityItem 
+                    key={item.id}
+                    type={item.type} 
+                    text={item.title} 
+                    time={item.timestamp?.toDate().toLocaleTimeString() || "Recently"} 
+                    points={item.description} 
+                  />
+                ))
+              ) : (
+                <p className="font-bold text-xl">No recent activity found.</p>
+              )}
             </div>
           </div>
         </div>
 
         {/* Right Column: Streak & Tasks */}
         <div className="space-y-8">
-          <StreakCard />
+          <StreakCard streakData={streak} />
           
           <div className="min-h-44 bg-[#BFACE2] rounded-[45px] border-[5px] border-black p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
             <h2 className="text-3xl font-black mb-4">Today's Tasks</h2>
@@ -208,15 +242,15 @@ const ActivityItem = ({ type, text, time, points }) => {
   );
 };
 
-const StreakCard = () => (
+const StreakCard = ({ streakData }) => (
   <div className="bg-[#FFF8D6] border-[5px] border-black rounded-[45px] p-8 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
     <div className="flex justify-between items-start mb-6">
       <p className="text-2xl font-black leading-none italic uppercase">
-        <span className="text-5xl">3 DAY</span><br/>STREAK!
+        <span className="text-5xl">{streakData?.streakCount || 0} DAY</span><br/>STREAK!
       </p>
       <div className="flex flex-col gap-2 text-xl font-black items-end">
-        <div className="bg-white border-3 border-black px-3 py-1 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">1024 <span className="text-orange-500">XP</span></div>
-        <div className="bg-white border-3 border-black px-3 py-1 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">32 ⚡</div>
+        <div className="bg-white border-3 border-black px-3 py-1 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{streakData?.xp || 0} <span className="text-orange-500">XP</span></div>
+        <div className="bg-white border-3 border-black px-3 py-1 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{streakData?.lightning || 0} ⚡</div>
       </div>
     </div>
     <div className="flex justify-between bg-black/5 p-5 rounded-[30px] border-3 border-black border-dotted">

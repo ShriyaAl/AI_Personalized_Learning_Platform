@@ -1,8 +1,72 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import TeacherNavbar from "../../../Components/TeacherNavbar";
 import "./TeacherHome.css";
+import { auth, db } from "../../../utils/auth/initalizers/firebaseClient.js";
+import { supabase } from "../../../utils/supabaseClient.js";
+import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 
 const TeacherHome = () => {
+  const [stats, setStats] = useState({ courses: 0, students: 0, groups: 0 });
+  const [activities, setActivities] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeacherData = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        setLoading(true);
+
+        // 1. Fetch Stats from Supabase
+        const { data: coursesData } = await supabase
+          .from("courses")
+          .select("id")
+          .eq("teacher_id", user.uid);
+        
+        const { count: studentCount } = await supabase
+          .from("enrollments")
+          .select("*", { count: 'exact', head: true }); // Simplified for demo
+
+        const { data: groupsData } = await supabase
+          .from("groups")
+          .select("id")
+          .eq("teacher_id", user.uid);
+
+        setStats({
+          courses: coursesData?.length || 0,
+          students: studentCount || 0,
+          groups: groupsData?.length || 0
+        });
+
+        // 2. Fetch Notifications from Supabase
+        const { data: notifData } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", user.uid)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        setNotifications(notifData || []);
+
+        // 3. Fetch Activity Feed from Firestore
+        const activityQuery = query(
+          collection(db, "activity", user.uid, "feed"),
+          orderBy("timestamp", "desc"),
+          limit(5)
+        );
+        const activitySnap = await getDocs(activityQuery);
+        setActivities(activitySnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+      } catch (err) {
+        console.error("❌ Error fetching teacher data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeacherData();
+  }, []);
   return (
     <>
       <TeacherNavbar activeTab="dashboard" />
@@ -14,8 +78,8 @@ const TeacherHome = () => {
               <span className="user-icon">👤</span>
             </div>
             <div className="profile-info">
-              <p className="profile-name">John Doe</p>
-              <p className="profile-email">john.doe@school.edu</p>
+              <p className="profile-name">{auth.currentUser?.displayName || "Teacher"}</p>
+              <p className="profile-email">{auth.currentUser?.email}</p>
               <div className="profile-badge">Teacher</div>
             </div>
           </div>
@@ -26,8 +90,8 @@ const TeacherHome = () => {
           {/* Welcome Header */}
           <header className="main-header">
             <div className="welcome-section">
-              <h1>Welcome back, John! 👋</h1>
-              <p>You last logged in 2 days ago</p>
+              <h1>Welcome back, {auth.currentUser?.displayName?.split(' ')[0] || "Teacher"}! 👋</h1>
+              <p>You last logged in today</p>
             </div>
             <div className="notification-bell">🔔</div>
           </header>
@@ -39,21 +103,21 @@ const TeacherHome = () => {
               <div className="stat-card">
                 <div className="stat-icon">📚</div>
                 <div className="stat-content">
-                  <p className="stat-number">5</p>
+                  <p className="stat-number">{stats.courses}</p>
                   <p className="stat-label">Active Courses</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon">👥</div>
                 <div className="stat-content">
-                  <p className="stat-number">20</p>
+                  <p className="stat-number">{stats.students}</p>
                   <p className="stat-label">Total Students</p>
                 </div>
               </div>
               <div className="stat-card">
                 <div className="stat-icon">👨‍🎓</div>
                 <div className="stat-content">
-                  <p className="stat-number">3</p>
+                  <p className="stat-number">{stats.groups}</p>
                   <p className="stat-label">Study Groups</p>
                 </div>
               </div>
@@ -67,26 +131,17 @@ const TeacherHome = () => {
                   <h3>📝 Recent Activity</h3>
                 </div>
                 <ul className="activity-list">
-                  <li>
-                    <span className="activity-dot"></span>
-                    <span className="activity-text">Added "Unit 3 Notes" to Data Structures</span>
-                    <span className="activity-time">Today</span>
-                  </li>
-                  <li>
-                    <span className="activity-dot"></span>
-                    <span className="activity-text">Quiz "Midterm Test" created</span>
-                    <span className="activity-time">2 days ago</span>
-                  </li>
-                  <li>
-                    <span className="activity-dot"></span>
-                    <span className="activity-text">5 new students joined Group A</span>
-                    <span className="activity-time">3 days ago</span>
-                  </li>
-                  <li>
-                    <span className="activity-dot"></span>
-                    <span className="activity-text">Course "AI Basics" updated</span>
-                    <span className="activity-time">4 days ago</span>
-                  </li>
+                  {activities.length > 0 ? (
+                    activities.map(activity => (
+                      <li key={activity.id}>
+                        <span className="activity-dot"></span>
+                        <span className="activity-text">{activity.title}</span>
+                        <span className="activity-time">{activity.timestamp?.toDate().toLocaleDateString() || "Recently"}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <p className="no-data">No recent activity</p>
+                  )}
                 </ul>
               </section>
 
@@ -107,9 +162,13 @@ const TeacherHome = () => {
                     <h3>🔔 Notifications</h3>
                   </div>
                   <ul className="info-list">
-                    <li>3 students haven't attempted Quiz 2</li>
-                    <li>No quiz created for Course X</li>
-                    <li>Group B has no materials</li>
+                    {notifications.length > 0 ? (
+                      notifications.map(notif => (
+                        <li key={notif.id}>{notif.payload?.message || "Notification received"}</li>
+                      ))
+                    ) : (
+                      <li>No new notifications</li>
+                    )}
                   </ul>
                 </section>
               </div>

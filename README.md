@@ -29,24 +29,26 @@ npm install
 ```
 
 ### 3. Set up Gemini API 🔑
+
 - The platform uses the Gemini 2.5 Flash model to power the academic AI Tutor.
 
 - Obtain an API key from the Google AI Studio.
 
 - Create a .env file in the root directory:
-  ``` bash
+  ```bash
   touch .env
   ```
 - Add your key to the .env file
-  ``` bash
+  ```bash
   VITE_GEMINI_API_KEY=your_actual_key_here
   ```
 
 ### 4. In another terminal:
-``` bash
+
+```bash
   cd backend
   npm install
-  ```
+```
 
 ## Backend Setup (Firebase Admin)
 
@@ -68,7 +70,7 @@ npm install
 
 ### 5. Set up Supabase variables in .env file within backend folder
 
-``` bash
+```bash
 DATABASE_URL =
 DATABSE_KEY =
 ```
@@ -90,3 +92,42 @@ http://localhost:5173
 ```bash
 node app.js
 ```
+
+## 🗄️ Database Schema
+
+### Supabase (PostgreSQL)
+
+The relational data is stored in Supabase. You can find the full schema in [schema.sql](file:///f:/Projects/AI_Personalized_Learning_Platform/backend/db/schema.sql).
+
+**Main Tables:**
+
+- `users`: Profile and roles (teacher/student).
+- `courses`: Learning material containers.
+- `groups`: Classrooms and student memberships.
+- `quizzes`: AI-generated assessments.
+- `discussion_threads`: Forum topics.
+
+### Firebase (Firestore)
+
+Firestore is used for real-time and session-based data.
+
+**Collections:**
+
+- `/sessions/{sessionId}`: AI tutor chat transcripts.
+- `/streaks/{userId}`: Gamification data (XP, Streaks).
+- `/activity/{userId}/feed`: User event log.
+- `/learning_paths/{courseId}`: AI-generated roadmaps.
+
+---
+
+### 🚀 Running the App
+
+1. **Backend**:
+   ```bash
+   cd backend
+   npm start
+   ```
+2. **Frontend**:
+   ```bash
+   npm run dev
+   ```
