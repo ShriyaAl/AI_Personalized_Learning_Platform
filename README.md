@@ -118,16 +118,12 @@ Firestore is used for real-time and session-based data.
 - `/activity/{userId}/feed`: User event log.
 - `/learning_paths/{courseId}`: AI-generated roadmaps.
 
+## 🤖 AI Mastery Checks
+
+The platform features an **Adaptive Quiz Engine** powered by Gemini 2.5 Flash.
+
+- **Dynamic Generation**: Quizzes are generated on-the-fly based on the specific lesson content.
+- **Adaptive Difficulty**: The system automatically scales difficulty (HARD → MEDIUM → EASY) if a student struggles, ensuring a personalized mastery path.
+- **Threshold-Based Progress**: Students must achieve a mastery score (> 2/5) to unlock rewards and proceed.
+
 ---
-
-### 🚀 Running the App
-
-1. **Backend**:
-   ```bash
-   cd backend
-   npm start
-   ```
-2. **Frontend**:
-   ```bash
-   npm run dev
-   ```

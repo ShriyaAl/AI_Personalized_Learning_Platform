@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import QuizSection from './QuizSection';
 
 const LessonView = () => {
   const navigate = useNavigate();
   const { courseId, subModuleId } = useParams();
+  const [showQuiz, setShowQuiz] = useState(false);
 
   const formatText = (text) => text?.replace(/-/g, ' ').toUpperCase();
 
   const handleSaveAndContinue = () => {
+    // Instead of navigating, show the quiz
+    setShowQuiz(true);
+  };
+
+  const handleQuizComplete = () => {
     confetti({
       particleCount: 150,
       spread: 70,
@@ -124,6 +131,14 @@ const LessonView = () => {
           </button>
         </div>
       </div>
+
+      {showQuiz && (
+        <QuizSection 
+          subModuleId={subModuleId} 
+          courseId={courseId} 
+          onComplete={handleQuizComplete} 
+        />
+      )}
     </div>
   );
 };
