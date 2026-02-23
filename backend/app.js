@@ -2,11 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import TestRouter from './routes/testRoute.js';
 import dotenv from 'dotenv';
+import 'dotenv/config';
 import cookieParser from 'cookie-parser';
 
 import { createClient } from '@supabase/supabase-js';
 
 import { adminDb } from './db/firebaseAdmin.js';
+
+import authRouter from "./routes/auth.js";
 
 dotenv.config();
 const supabase = createClient(process.env.DATABASE_URL, process.env.DATABASE_KEY);
@@ -84,6 +87,7 @@ app.post("/api/sessions", async (req, res) => {
   }
 });
 
+app.use('/api/auth', authRouter);
 
 app.listen(3000, () => {
     console.log(`🚀 Backend is running on http://localhost:3000`);

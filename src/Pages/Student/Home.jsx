@@ -52,6 +52,8 @@ const Home = () => {
         try {
           const token = await user.getIdToken(true);
           const response = await fetch('http://localhost:3000/api/test/verify-me', {
+            method: 'GET',
+            credentials: 'include',
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();

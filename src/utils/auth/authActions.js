@@ -1,33 +1,3 @@
-// import { firebaseClient } from "./initalizers/firebaseClient";
-
-// const GoogleAuthProvider = new firebaseClient.auth.GoogleAuthProvider();
-
-// export const login = async (options) => {
-//   try {
-//     // This triggers the Google Popup
-//     await firebaseClient.auth().signInWithPopup(GoogleAuthProvider);
-    
-//     // If you pass a navigate function and a path, it will redirect
-//     if (options?.navigate && options?.redirect) {
-//       options.navigate(options.redirect);
-//     }
-//   } catch (error) {
-//     console.error(`[login] Error: ${error.message}`);
-//     alert("Login failed: " + error.message);
-//   }
-// };
-
-// export const logout = async (options) => {
-//   try {
-//     await firebaseClient.auth().signOut();
-//     if (options?.navigate) {
-//       options.navigate(options?.redirect || '/');
-//     }
-//   } catch (error) {
-//     console.error(`[logout] Error: ${error.message}`);
-//   }
-// };
-
 import { 
   signInWithEmailAndPassword, 
   signInWithPopup, 
@@ -37,12 +7,22 @@ import {
 import { auth } from './initalizers/firebaseClient';
 import nookies from 'nookies';
 
-export const loginWithEmail = async (email, password, navigate, redirectPath) => {
+// export const loginWithEmail = async (email, password, navigate, redirectPath) => {
+//   try {
+//     await signInWithEmailAndPassword(auth, email, password);
+//     if (navigate && redirectPath) navigate(redirectPath);
+//   } catch (error) {
+//     alert(error.message);
+//   }
+// };
+
+export const loginWithEmail = async (email, password, navigate) => {
+  // eslint-disable-next-line no-useless-catch
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    if (navigate && redirectPath) navigate(redirectPath);
+    await handleSuccessfulLogin(navigate);
   } catch (error) {
-    alert(error.message);
+    throw error; // let Login.jsx catch it
   }
 };
 
@@ -67,5 +47,43 @@ export const logout = async (navigate) => {
     }
   } catch (error) {
     console.error("Logout Error:", error);
+  }
+};
+
+export const handleSuccessfulLogin = async (navigate) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No authenticated user");
+
+    // Get fresh token
+    const idToken = await user.getIdToken(/* forceRefresh */ true);
+
+    // Call backend to sync + set claim
+    const res = await fetch('http://localhost:3000/api/auth/sync-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Sync failed');
+    }
+
+    // Optional: get role from response (but better to read from claims)
+    const { role } = await res.json();
+
+    // Force refresh again to ensure claims are in token
+    await user.getIdToken(true);
+
+    // Now read role from claims
+    const tokenResult = await user.getIdTokenResult();
+    const finalRole = tokenResult.claims.role || 'student';
+
+    const destination = finalRole === 'teacher' ? '/teacher-home' : '/home-student';
+    navigate(destination);
+  } catch (err) {
+    console.error("Login flow error:", err);
+    throw err; // so Login.jsx can show it
   }
 };

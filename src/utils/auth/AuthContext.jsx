@@ -54,21 +54,44 @@ const AuthContext = createContext({ user: null });
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
+  // useEffect(() => {
+  //   // Listen for auth state changes
+  //   const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+  //     if (!firebaseUser) {
+  //       setUser(null);
+  //       nookies.destroy(null, 'token', { path: '/' });
+  //     } else {
+  //       const token = await firebaseUser.getIdToken();
+  //       setUser(firebaseUser);
+  //       nookies.set(null, 'token', token, { path: '/' });
+  //     }
+  //   });
+
+  //   return () => unsubscribe();
+  // }, []);
+
   useEffect(() => {
-    // Listen for auth state changes
-    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        setUser(null);
-        nookies.destroy(null, 'token', { path: '/' });
-      } else {
-        const token = await firebaseUser.getIdToken();
-        setUser(firebaseUser);
-        nookies.set(null, 'token', token, { path: '/' });
-      }
+  const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+    if (!firebaseUser) {
+      setUser(null);
+      nookies.destroy(null, 'token', { path: '/' });
+      return;
+    }
+
+    const tokenResult = await firebaseUser.getIdTokenResult();
+    const role = tokenResult.claims?.role || 'student'; // fallback
+
+    setUser({
+      ...firebaseUser,
+      role,
     });
 
-    return () => unsubscribe();
-  }, []);
+    const token = tokenResult.token;
+    nookies.set(null, 'token', token, { path: '/' });
+  });
+
+  return unsubscribe;
+}, []);
 
   return (
     <AuthContext.Provider value={{ user }}>
