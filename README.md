@@ -1,6 +1,7 @@
 # 📚 AI-Based Personalized Learning Platform
 
 An early-stage AI-powered learning platform that helps teachers understand where students struggle and gives students instant, contextual help while studying.
+This is currently in process of development.
 
 ## 🧠 Project Goal
 
