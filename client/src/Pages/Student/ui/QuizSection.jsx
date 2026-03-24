@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import confetti from 'canvas-confetti';
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
-
-const QuizSection = ({ subModuleId, courseId, onComplete }) => {
+const QuizSection = ({ subModuleId, courseId, onComplete, materialContext }) => {
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [currentStep, setCurrentStep] = useState(0); 
@@ -16,37 +12,15 @@ const QuizSection = ({ subModuleId, courseId, onComplete }) => {
 
   const generateQuiz = async (diff) => {
     setLoading(true);
-    if (!genAI) {
-      setLoading(false);
-      return;
-    }
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const prompt = `
-        Generate a 5-question multiple choice quiz for a student who just finished learning about: ${subModuleId}.
-        Course Context: ${courseId}.
-        Difficulty Level: ${diff}.
-        
-        Guidelines:
-        - Generate exactly 5 questions.
-        - Difficulty ${diff}: ${diff === 'HARD' ? 'Advanced application and deep theory.' : diff === 'MEDIUM' ? 'Standard comprehension and core facts.' : 'Basic definitions and simple concepts.'}
-        - Return ONLY valid JSON as an array of objects.
-        
-        Format:
-        [
-          {
-            "question": "Question text?",
-            "options": ["A", "B", "C", "D"],
-            "correct": 0,
-            "explanation": "Brief explanation."
-          }
-        ]
-      `;
-
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().trim().replace(/```json/g, '').replace(/```/g, '');
-      const data = JSON.parse(text);
+      const response = await fetch('http://localhost:3000/api/ai/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subModuleId, courseId, diff, materialContext })
+      });
+      if (!response.ok) throw new Error("Failed to generate quiz");
+      const data = await response.json();
       
       setQuestions(data.slice(0, 5));
       setAnswers({});
@@ -111,8 +85,10 @@ const QuizSection = ({ subModuleId, courseId, onComplete }) => {
         <h2 className="text-[#facc15] text-3xl font-black italic uppercase animate-pulse">
           {attempt > 1 ? `Adjusting Level to ${difficulty}...` : 'Generating Mastery Check...'}
         </h2>
-        <p className="text-white/40 mt-4 font-bold italic">
-          {difficulty === 'HARD' ? '"Harder questions build stronger neural paths."' : '"Let\'s try a different perspective."'}
+        <p className="text-white/40 mt-4 font-bold italic text-center max-w-sm">
+          {materialContext
+            ? '📄 Crafting questions from your uploaded learning material...'
+            : difficulty === 'HARD' ? '"Harder questions build stronger neural paths."' : '"Let\'s try a different perspective."'}
         </p>
       </div>
     );

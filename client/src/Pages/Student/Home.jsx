@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../../utils/auth/initalizers/firebaseClient.js';
-import { supabase } from '../../utils/supabaseClient.js';
 import { collection, doc, getDoc, getDocs, query, limit, orderBy } from 'firebase/firestore';
 
 const Home = () => {
@@ -16,12 +15,10 @@ const Home = () => {
 
       try {
         setLoading(true);
-        // 1. Fetch Courses from Supabase
-        const { data: coursesData, error: coursesError } = await supabase
-          .from('courses')
-          .select('*')
-          .limit(3);
-        if (coursesError) throw coursesError;
+        // 1. Fetch Courses from Backend
+        const coursesResponse = await fetch('http://localhost:3000/api/dashboard/student/courses');
+        if (!coursesResponse.ok) throw new Error("Failed to fetch courses");
+        const coursesData = await coursesResponse.json();
         setCourses(coursesData || []);
 
         // 2. Fetch Streaks from Firestore

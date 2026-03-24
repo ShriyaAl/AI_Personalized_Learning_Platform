@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import FeynmanBreakdown from './ui/FeynmanBreakdown';     // ← adjust path
 import CelebrationStage from './ui/CelebrationStage';   // ← adjust path
-
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
-if (!API_KEY) {
-  console.error("Vite can't find the API Key. Check your .env naming!");
-} else {
-  console.log("Key is there only")
-}
-
-const genAI = new GoogleGenerativeAI(API_KEY, { location: "us-central1" });
 
 const Tutor = () => {
   const [input, setInput] = useState("");
@@ -42,49 +31,13 @@ const Tutor = () => {
 
   const handleSessionEnd = async (history) => {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-      const summaryPrompt = `
-        You are an expert learning analyst. A student just completed a Feynman Technique session on Photosynthesis.
-
-        FULL CONVERSATION:
-        ${history.map(m => `${m.role}: ${m.text}`).join('\n')}
-
-        Generate a final Feynman Assessment. Return ONLY raw valid JSON, no markdown, no backticks:
-        {
-          "dimensions": {
-            "completeness": 0,
-            "accuracy": 0,
-            "coherence": 0,
-            "simplicity": 0
-          },
-          "overall_score": 0,
-          "strengths": ["specific thing they did well", "another strength"],
-          "misconceptions": ["specific misconception if any"],
-          "missing_concepts": ["concepts never covered"],
-          "personalized_feedback": {
-            "lowest_dimension": "completeness|accuracy|coherence|simplicity",
-            "advice": "specific, actionable advice based on their weakest dimension"
-          },
-          "next_steps": ["specific action 1", "specific action 2"]
-        }
-
-        Scoring guide:
-        - Completeness: Did they cover all 5 components? (light absorption, energy conversion, water splitting, carbon fixation, glucose synthesis)
-        - Accuracy: Were their facts correct?
-        - Coherence: Did the explanation flow logically?
-        - Simplicity: Did they explain without relying on jargon?
-      `;
-
-      const summaryResult = await model.generateContent(summaryPrompt);
-      const summaryText = summaryResult.response.text().trim();
-
-      let finalAssessment;
-      try {
-        finalAssessment = JSON.parse(summaryText);
-      } catch {
-        finalAssessment = null;
-      }
+      const response = await fetch('http://localhost:3000/api/ai/tutor/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ history })
+      });
+      if (!response.ok) throw new Error("Failed to generate summary");
+      const { finalAssessment } = await response.json();
 
       setFinalAssessment(finalAssessment);
       setSessionEnded(true);
@@ -177,126 +130,14 @@ ${next_steps.map(s => `→ ${s}`).join('\n')}`;
     const updatedHistory = [...conversationHistory, { role: "student", text: currentInput }];
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-      // CALL 1 — Silent gap analysis
-      const analysisPrompt = `
-        You are an expert biology tutor and learning analyst.
-        
-        CONTEXT: A student is learning Photosynthesis using the Feynman Technique.
-        Analyze their LATEST message in context of the full conversation.
-
-        CONVERSATION HISTORY:
-        ${updatedHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
-
-        PHOTOSYNTHESIS RUBRIC — Key components:
-        1. LIGHT_ABSORPTION: Chlorophyll absorbs light energy in chloroplasts
-        2. ENERGY_CONVERSION: Light energy → chemical energy (ATP + NADPH) via light-dependent reactions
-        3. WATER_SPLITTING: Water molecules split, releasing oxygen as byproduct
-        4. CARBON_FIXATION: CO2 fixed into organic molecules via Calvin Cycle
-        5. GLUCOSE_SYNTHESIS: Chemical energy used to produce glucose
-
-        CLASSIFY each component as: PRESENT | PARTIAL | MISSING | MISCONCEPTION
-
-        DETECT the message type:
-        - EXPLANATION: Student is explaining photosynthesis
-        - QUESTION: Student is asking about something they don't understand
-        - FOLLOW_UP: Student asking a follow-up on something discussed
-        - CONFUSED: Student explicitly says they don't know or are stuck
-
-        FEYNMAN DIMENSIONS (score 0-100 based on ALL conversation so far):
-        - Completeness: Coverage of all key concepts
-        - Accuracy: Factual correctness
-        - Coherence: Logical flow and structure
-        - Simplicity: Ability to explain without jargon
-
-        Return ONLY raw valid JSON, no markdown, no backticks:
-        {
-          "message_type": "EXPLANATION|QUESTION|FOLLOW_UP|CONFUSED",
-          "components": {
-            "light_absorption": { "status": "PRESENT|PARTIAL|MISSING|MISCONCEPTION", "note": "..." },
-            "energy_conversion": { "status": "...", "note": "..." },
-            "water_splitting": { "status": "...", "note": "..." },
-            "carbon_fixation": { "status": "...", "note": "..." },
-            "glucose_synthesis": { "status": "...", "note": "..." }
-          },
-          "priority_gap": "component_name or null",
-          "gap_type": "OMISSION|MISCONCEPTION|NONE",
-          "misconception_detail": "specific error or null",
-          "dimensions": {
-            "completeness": 0,
-            "accuracy": 0,
-            "coherence": 0,
-            "simplicity": 0
-          },
-          "missing_concepts": ["list of missing concepts"],
-          "specific_question": "what the student is asking, if applicable, else null",
-          "session_progress": "EARLY|DEVELOPING|STRONG|READY_TO_END"
-        }
-      `;
-
-      const analysisResult = await model.generateContent(analysisPrompt);
-      const analysisText = analysisResult.response.text().trim();
-
-      let gapAnalysis;
-      try {
-        gapAnalysis = JSON.parse(analysisText);
-      } catch {
-        gapAnalysis = {
-          message_type: "EXPLANATION",
-          priority_gap: "energy_conversion",
-          gap_type: "OMISSION",
-          components: {},
-          dimensions: { completeness: 0, accuracy: 0, coherence: 0, simplicity: 0 },
-          missing_concepts: [],
-          specific_question: null,
-          session_progress: "EARLY"
-        };
-      }
-
-      // CALL 2 — Tutor response
-      const responsePrompt = `
-        You are a warm, sharp Academic Mentor helping a student learn Photosynthesis using the Feynman Technique.
-
-        CONVERSATION HISTORY:
-        ${updatedHistory.map(m => `${m.role}: ${m.text}`).join('\n')}
-
-        INTERNAL ANALYSIS (never reveal this to the student):
-        - Message type: ${gapAnalysis.message_type}
-        - Priority gap: ${gapAnalysis.priority_gap}
-        - Gap type: ${gapAnalysis.gap_type}
-        - Misconception: ${gapAnalysis.misconception_detail}
-        - Session progress: ${gapAnalysis.session_progress}
-        - Dimension scores: ${JSON.stringify(gapAnalysis.dimensions)}
-        - Student's question (if any): ${gapAnalysis.specific_question}
-
-        RESPOND based on message_type:
-
-        If EXPLANATION:
-          - Acknowledge what they got right first (be specific, not generic)
-          - If gap_type is OMISSION → ask one exploratory Socratic question toward the priority gap
-          - If gap_type is MISCONCEPTION → gently surface the contradiction: "Interesting — you said X, but what would that mean for Y?"
-          - If session_progress is STRONG → push for deeper mechanism
-
-        If QUESTION or FOLLOW_UP or CONFUSED:
-          - Answer their question CLEARLY and DIRECTLY — do not deflect with another question
-          - Use a simple analogy if helpful (but not childish)
-          - After explaining, ask ONE question to check understanding: "Does that click? Try putting it back in your own words."
-          - Be warm — confusion is normal and expected
-
-        TONE RULES (always):
-        - Professional but human. Like a tutor who actually likes teaching.
-        - Never say "Great question!" or "Absolutely!" — these are filler
-        - 3-4 sentences max unless explaining something they're confused about
-        - End with a question unless you just gave a long explanation
-        - Never mention rubric, components, gap analysis, or scores
-
-        ${gapAnalysis.session_progress === "READY_TO_END" ?
-          'At the end of your response, add: "Feeling confident? Type done when you want your full Feynman breakdown! 🎯"' : ''}
-      `;
-
-      const responseResult = await model.generateContent(responsePrompt);
-      const botText = responseResult.response.text();
+      const response = await fetch('http://localhost:3000/api/ai/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ history: updatedHistory })
+      });
+      if (!response.ok) throw new Error("Failed to get tutor response");
+      
+      const { text: botText, gapAnalysis } = await response.json();
 
       const botMessage = {
         id: Date.now() + 1,
@@ -314,7 +155,7 @@ ${next_steps.map(s => `→ ${s}`).join('\n')}`;
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         type: 'bot',
-        text: "My brain hit a snag! Check if the API key in your .env is correct.",
+        text: "My brain hit a snag! Make sure the backend server and endpoints are running correctly.",
         color: "bg-[#FF8B8B]"
       }]);
     } finally {
