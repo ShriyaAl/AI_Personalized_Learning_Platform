@@ -85,7 +85,7 @@ import {
   GoogleAuthProvider, 
   signOut 
 } from 'firebase/auth';
-import { auth } from '../initializers/firebaseClient';
+import { auth } from './initalizers/firebaseClient.js';
 import { apiRequest } from '../apiClient'; // Our new utility
 import nookies from 'nookies';
 

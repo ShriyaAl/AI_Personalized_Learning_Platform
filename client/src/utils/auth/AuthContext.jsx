@@ -88,7 +88,7 @@
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { onIdTokenChanged } from 'firebase/auth';
-import { auth } from './initializers/firebaseClient';
+import { auth } from './initalizers/firebaseClient.js';
 
 const AuthContext = createContext({ user: null, loading: true });
 
