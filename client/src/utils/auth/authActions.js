@@ -98,11 +98,8 @@ export const handleSuccessfulLogin = async (navigate) => {
     const user = auth.currentUser;
     if (!user) throw new Error("Authentication failed: No user found.");
 
-    // 1. Get fresh ID Token from Firebase
     const idToken = await user.getIdToken(true);
 
-    // 2. Sync with Backend using our apiClient
-    // This automatically handles the Base URL and includes credentials for cookies
     const data = await apiRequest('/api/auth/sync-user', {
       method: 'POST',
       body: JSON.stringify({ idToken }),
@@ -110,13 +107,19 @@ export const handleSuccessfulLogin = async (navigate) => {
 
     const serverRole = data.role || 'student';
 
-    // 3. Force refresh token to ensure the new custom claim (role) is available locally
     await user.getIdToken(true);
     const tokenResult = await user.getIdTokenResult();
-    const finalRole = tokenResult.claims.role || serverRole;
+    const finalRole = (tokenResult.claims.role || serverRole).toLowerCase();
 
-    // 4. Redirect based on role
-    const destination = finalRole === 'teacher' ? '/teacher-home' : '/home-student';
+    // FIXED REDIRECT LOGIC
+    let destination = '/home-student'; // Default
+    if (finalRole === 'admin') {
+      destination = '/home-admin';
+    } else if (finalRole === 'teacher') {
+      destination = '/teacher-home';
+    }
+
+    console.log(`Role verified: ${finalRole}. Redirecting to: ${destination}`);
     navigate(destination);
     
   } catch (err) {
