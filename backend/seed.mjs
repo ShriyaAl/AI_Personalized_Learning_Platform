@@ -171,6 +171,46 @@ const courses = [
         ]
       }
     ]
+  },
+  {
+    title: "React Development",
+    subject: "Web Development",
+    description: "Learn the fundamentals of React, hooks, and single-page applications.",
+    is_published: true,
+    modules: [
+      {
+        title: "React Basics",
+        order_index: 0,
+        is_locked: false,
+        lessons: [
+          {
+            title: "Introduction to Components",
+            type: "doc",
+            order_index: 0,
+            content_url: null
+          },
+          {
+            title: "JSX and Props",
+            type: "doc",
+            order_index: 1,
+            content_url: null
+          }
+        ]
+      },
+      {
+        title: "React Hooks",
+        order_index: 1,
+        is_locked: true,
+        lessons: [
+          {
+            title: "useState and useEffect",
+            type: "doc",
+            order_index: 0,
+            content_url: null
+          }
+        ]
+      }
+    ]
   }
 ];
 

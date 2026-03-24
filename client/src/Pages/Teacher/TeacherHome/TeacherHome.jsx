@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import TeacherNavbar from "../../../Components/TeacherNavbar";
 import "./TeacherHome.css";
-import { auth, db } from "../../../utils/auth/initalizers/firebaseClient.js";
-import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
+import { auth } from "../../../utils/auth/initalizers/firebaseClient.js";
 
 const TeacherHome = () => {
   const [stats, setStats] = useState({ courses: 0, students: 0, groups: 0 });
@@ -18,21 +17,14 @@ const TeacherHome = () => {
       try {
         setLoading(true);
 
-        // 1. Fetch Stats and Notifications from Backend
+        // Fetch Stats and Notifications from Backend
         const response = await fetch(`http://localhost:3000/api/dashboard/teacher/${user.uid}`);
         if (!response.ok) throw new Error("Failed to fetch teacher dashboard data");
         const { stats: newStats, notifications: notifData } = await response.json();
         setStats(newStats);
         setNotifications(notifData);
-
-        // 3. Fetch Activity Feed from Firestore
-        const activityQuery = query(
-          collection(db, "activity", user.uid, "feed"),
-          orderBy("timestamp", "desc"),
-          limit(5)
-        );
-        const activitySnap = await getDocs(activityQuery);
-        setActivities(activitySnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        // Activity feed not yet wired to Supabase
+        setActivities([]);
 
       } catch (err) {
         console.error("❌ Error fetching teacher data:", err);

@@ -1,14 +1,16 @@
 import express from 'express';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import 'dotenv/config';
 
 const aiRouter = express.Router();
 
 // Verify GEMINI_API_KEY exists
-if (!process.env.GEMINI_API_KEY) {
-  console.error("GEMINI_API_KEY is not defined in backend .env");
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.error("❌ GEMINI_API_KEY is not defined in backend .env");
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(apiKey);
 
 // 1. Quiz Generation Endpoint
 aiRouter.post('/quiz', async (req, res) => {
@@ -424,5 +426,241 @@ aiRouter.post('/generate-roadmap', async (req, res) => {
   }
 });
 
+// Helper to try multiple model names — skips models that are unavailable OR rate-limited
+async function generateWithFallback(genAI, prompt, primaryModel = "gemini-2.0-flash") {
+  // Ordered by preference: newest/most-quota-generous first
+  const modelsToTry = [
+    primaryModel,
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-8b",
+    "gemini-pro",
+  ].filter((m, i, arr) => arr.indexOf(m) === i); // deduplicate
+
+  let lastError;
+
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`🤖 Attempting AI call with model: ${modelName}`);
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      console.log(`✅ AI call succeeded with model: ${modelName}`);
+      return result;
+    } catch (err) {
+      lastError = err;
+      const isNotFound = err.status === 404 || err.message?.toLowerCase().includes('not found');
+      const isQuota = err.status === 429 || err.message?.toLowerCase().includes('quota') || err.message?.toLowerCase().includes('rate');
+      const isUnavailable = err.status === 503 || err.message?.toLowerCase().includes('unavailable');
+
+      if (isNotFound || isQuota || isUnavailable) {
+        console.warn(`⚠️ Model ${modelName} failed (${err.status || 'unknown status'}): ${err.message?.slice(0, 80)}. Trying next...`);
+        continue;
+      }
+      // For auth errors (401) or truly unexpected errors, stop immediately
+      console.error(`❌ Non-retryable error on model ${modelName}:`, err.message);
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
+// 5. Dynamic Lesson Tutor — Feynman approach for ANY lesson topic
+aiRouter.post('/lesson-tutor', async (req, res) => {
+  const { history, lessonTitle, materialContext } = req.body;
+  if (!history || !Array.isArray(history) || !lessonTitle) {
+    return res.status(400).json({ error: 'Missing required fields: history, lessonTitle' });
+  }
+
+  try {
+    const contextBlock = materialContext
+      ? `\n      LESSON MATERIAL (key facts the student should know):\n      ---\n      ${materialContext.slice(0, 3000)}\n      ---`
+      : `\n      Note: No specific material was provided. Use your knowledge of "${lessonTitle}" to assess the explanation.`;
+
+    // Call 1 — Silent gap analysis
+    const analysisPrompt = `
+      You are an expert learning analyst using the Feynman Technique.
+
+      TOPIC: "${lessonTitle}"
+      ${contextBlock}
+
+      STUDENT CONVERSATION SO FAR:
+      ${history.map(m => `${m.role}: ${m.text}`).join('\n')}
+
+      Your job: analyze the student's LATEST explanation against what an ideal explanation of "${lessonTitle}" should cover.
+
+      DETECT message_type:
+      - EXPLANATION: student is explaining the topic
+      - QUESTION: student is asking something
+      - FOLLOW_UP: student replies to your question
+      - CONFUSED: student says they don't know or are stuck
+
+      FEYNMAN DIMENSIONS (0–100, based on full conversation so far):
+      - Completeness: did they cover all the key concepts?
+      - Accuracy: are the facts correct?
+      - Coherence: does it flow logically?
+      - Simplicity: can they explain without jargon?
+
+      IDENTIFY: The single most important concept they have not explained yet (priority_gap).
+
+      Return ONLY raw valid JSON (no markdown, no backticks):
+      {
+        "message_type": "EXPLANATION|QUESTION|FOLLOW_UP|CONFUSED",
+        "priority_gap": "short concept name or null",
+        "gap_type": "OMISSION|MISCONCEPTION|NONE",
+        "misconception_detail": "specific error string or null",
+        "dimensions": { "completeness": 0, "accuracy": 0, "coherence": 0, "simplicity": 0 },
+        "missing_concepts": ["concept 1", "concept 2"],
+        "specific_question": "what student is asking, or null",
+        "session_progress": "EARLY|DEVELOPING|STRONG|READY_TO_END"
+      }
+    `;
+
+    // Use fallback helper for analysis
+    const analysisResult = await generateWithFallback(genAI, analysisPrompt);
+    const analysisText = analysisResult.response.text().trim().replace(/```json/g, '').replace(/```/g, '');
+
+    let gapAnalysis;
+    try {
+      gapAnalysis = JSON.parse(analysisText);
+    } catch {
+      gapAnalysis = {
+        message_type: 'EXPLANATION',
+        priority_gap: null,
+        gap_type: 'NONE',
+        misconception_detail: null,
+        dimensions: { completeness: 40, accuracy: 60, coherence: 50, simplicity: 50 },
+        missing_concepts: [],
+        specific_question: null,
+        session_progress: 'EARLY'
+      };
+    }
+
+    // Call 2 — Tutor response
+    const responsePrompt = `
+      You are a warm, expert Academic Mentor helping a student learn "${lessonTitle}" using the Feynman Technique.
+      The student was asked to explain "${lessonTitle}" as if to a 10-year-old.
+
+      CONVERSATION SO FAR:
+      ${history.map(m => `${m.role}: ${m.text}`).join('\n')}
+
+      INTERNAL ANALYSIS (never reveal this):
+      - Message type: ${gapAnalysis.message_type}
+      - Priority gap: ${gapAnalysis.priority_gap}
+      - Gap type: ${gapAnalysis.gap_type}
+      - Misconception: ${gapAnalysis.misconception_detail}
+      - Session progress: ${gapAnalysis.session_progress}
+
+      RESPOND based on message_type:
+
+      If EXPLANATION:
+        - Specifically acknowledge what they explained well
+        - If gap_type is OMISSION → ask ONE Socratic question to probe the priority gap. Don't explain it yourself.
+        - If gap_type is MISCONCEPTION → surface the contradiction gently: "Interesting — you said X. What happens to Y then?"
+        - If session_progress is STRONG → push for deeper mechanism or a real-world example
+
+      If QUESTION or FOLLOW_UP or CONFUSED:
+        - Answer CLEARLY and DIRECTLY with a helpful analogy
+        - After explaining, ask ONE check question: "Does that make sense? Try explaining it back."
+
+      TONE:
+      - Sharp, warm, like a tutor who cares
+      - 3-4 sentences max (unless clarifying confusion)
+      - Never say "Great!" or "Absolutely!" — avoid filler praise
+      - Never mention rubric, scores, or analysis
+
+      ${gapAnalysis.session_progress === 'READY_TO_END'
+        ? 'At the end of your response add: "You\'re getting there! Type \'done\' when you feel confident for your full Feynman breakdown. 🎯"'
+        : ''}
+    `;
+
+    const responseResult = await generateWithFallback(genAI, responsePrompt);
+    const text = responseResult.response.text();
+
+    res.json({ gapAnalysis, text });
+
+  } catch (error) {
+    console.error('❌ Lesson Tutor Error (all models exhausted):', error.status, error.message);
+
+    // If genuinely all models are rate-limited / unavailable, return a usable fallback
+    // so the chat UI doesn't break. Return 200 so the frontend can keep running.
+    const isQuotaOrUnavailable = error.status === 429 || error.status === 503
+      || error.message?.toLowerCase().includes('quota')
+      || error.message?.toLowerCase().includes('rate')
+      || error.message?.toLowerCase().includes('unavailable');
+
+    if (isQuotaOrUnavailable) {
+      return res.json({
+        gapAnalysis: null,
+        text: "I'm having trouble connecting to the AI right now — the service may be rate-limited. Keep going with your explanation and I'll catch up! 🔄"
+      });
+    }
+
+    // Auth errors, invalid API key, etc. — still return 500 so they're visible
+    res.status(500).json({ error: `AI Tutor Error: ${error.message}` });
+  }
+});
+
+
+// 6. Dynamic Lesson Tutor Summary — generates Feynman breakdown for any lesson topic
+aiRouter.post('/lesson-tutor/summary', async (req, res) => {
+  const { history, lessonTitle } = req.body;
+  if (!history || !Array.isArray(history) || !lessonTitle) {
+    return res.status(400).json({ error: 'Missing required fields: history, lessonTitle' });
+  }
+
+  try {
+    const summaryPrompt = `
+      You are an expert learning analyst. A student just completed a Feynman Technique session on "${lessonTitle}".
+
+      FULL CONVERSATION:
+      ${history.map(m => `${m.role}: ${m.text}`).join('\n')}
+
+      Generate a final Feynman Assessment for the topic "${lessonTitle}". Return ONLY raw valid JSON, no markdown, no backticks:
+      {
+        "dimensions": {
+          "completeness": 0,
+          "accuracy": 0,
+          "coherence": 0,
+          "simplicity": 0
+        },
+        "overall_score": 0,
+        "strengths": ["specific thing they did well", "another strength"],
+        "misconceptions": ["specific misconception if any"],
+        "missing_concepts": ["concepts never covered"],
+        "personalized_feedback": {
+          "lowest_dimension": "completeness|accuracy|coherence|simplicity",
+          "advice": "specific, actionable advice based on their weakest dimension"
+        },
+        "next_steps": ["specific action 1", "specific action 2"]
+      }
+
+      Scoring guide for "${lessonTitle}":
+      - Completeness: Did they cover the core concepts of this topic?
+      - Accuracy: Were their facts about "${lessonTitle}" correct?
+      - Coherence: Did the explanation flow logically?
+      - Simplicity: Did they explain without relying on jargon?
+    `;
+
+    const summaryResult = await generateWithFallback(genAI, summaryPrompt);
+    const summaryText = summaryResult.response.text().trim().replace(/```json/g, '').replace(/```/g, '');
+
+    let finalAssessment;
+    try {
+      finalAssessment = JSON.parse(summaryText);
+    } catch {
+      finalAssessment = null;
+    }
+
+    res.json({ finalAssessment });
+
+  } catch (error) {
+    console.error('❌ Lesson Tutor Summary Error:', error);
+    res.status(500).json({ error: `Summary Error: ${error.message}` });
+  }
+});
+
 
 export default aiRouter;
+

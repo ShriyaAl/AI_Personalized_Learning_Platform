@@ -1,6 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 
 // 1. Build config from Environment Variables
 const firebaseConfig = {
@@ -19,7 +18,6 @@ const firebaseClient = getApps().length > 0
 
 // 3. Initialize Services
 const auth = getAuth(firebaseClient);
-const db = getFirestore(firebaseClient);
 
 // 4. Client-side Persistence Logic
 if (typeof window !== 'undefined') {
@@ -32,4 +30,4 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export { firebaseClient, auth, db };
+export { firebaseClient, auth };

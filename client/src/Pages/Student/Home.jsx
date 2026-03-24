@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { auth, db } from '../../utils/auth/initalizers/firebaseClient.js';
-import { collection, doc, getDoc, getDocs, query, limit, orderBy } from 'firebase/firestore';
+import { auth } from '../../utils/auth/initalizers/firebaseClient.js';
 
 const Home = () => {
   const [courses, setCourses] = useState([]);
@@ -15,26 +14,15 @@ const Home = () => {
 
       try {
         setLoading(true);
-        // 1. Fetch Courses from Backend
+        // Fetch Courses from Backend
         const coursesResponse = await fetch('http://localhost:3000/api/dashboard/student/courses');
         if (!coursesResponse.ok) throw new Error("Failed to fetch courses");
         const coursesData = await coursesResponse.json();
         setCourses(coursesData || []);
 
-        // 2. Fetch Streaks from Firestore
-        const streakDoc = await getDoc(doc(db, 'streaks', user.uid));
-        if (streakDoc.exists()) {
-          setStreak(streakDoc.data());
-        }
-
-        // 3. Fetch Activity from Firestore
-        const activityQuery = query(
-          collection(db, 'activity', user.uid, 'feed'),
-          orderBy('timestamp', 'desc'),
-          limit(3)
-        );
-        const activitySnap = await getDocs(activityQuery);
-        setActivity(activitySnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        // Streak and activity are stored in Supabase — not yet wired up, show empty defaults
+        setStreak({ streakCount: 0, xp: 0, lightning: 0 });
+        setActivity([]);
 
       } catch (err) {
         console.error("❌ Error fetching dashboard data:", err);

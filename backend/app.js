@@ -10,6 +10,9 @@ import authRouter from './routes/auth.js';
 import courseRouter from './routes/courseRoutes.js';
 import learningRouter from './routes/learningRoutes.js';
 import adminRouter from './routes/admin.js';
+import aiRouter from "./routes/ai.js";
+import dashboardRouter from "./routes/dashboard.js";
+import videoRouter from "./routes/video.js";
 
 // Configuration
 dotenv.config();
@@ -17,7 +20,10 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import cookieParser from 'cookie-parser';
+
 // --- MIDDLEWARE ---
+app.use(cookieParser()); 
 app.use(cors({
   origin: process.env.VITE_CLIENT_URL || 'http://localhost:5173',
   credentials: true // Crucial for HttpOnly cookies
@@ -49,6 +55,9 @@ app.get('/health', (req, res) => {
 
 // 1. Auth & Sync (Login, Token Verification, Role Sync)
 app.use('/api/auth', authRouter);
+app.use('/api/ai', aiRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/videos', videoRouter);
 
 // 2. Courses (Management, Roadmaps, Modules)
 app.use('/api/courses', courseRouter);
