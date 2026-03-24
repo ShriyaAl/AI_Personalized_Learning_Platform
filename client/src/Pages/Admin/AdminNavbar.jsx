@@ -1,7 +1,10 @@
 import React from 'react';
 import { Search, Bell, UserCircle, Settings, LogOut } from 'lucide-react'; // Using Lucide for sharp, formal icons
+import { useAuth } from '../../utils/auth/AuthContext';
 
 const AdminNavbar = () => {
+  const { user } = useAuth();
+
   return (
     <nav className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 sticky top-0 z-10">
       {/* Search Bar */}
@@ -30,8 +33,10 @@ const AdminNavbar = () => {
         {/* Admin Profile Dropdown */}
         <div className="flex items-center gap-3 cursor-pointer group">
           <div className="text-right">
-            <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Super Admin</p>
-            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">System Control</p>
+            <p className="text-sm font-bold text-slate-900">{user?.displayName || 'Super Admin'}</p>
+            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+              System Control ({user?.role})
+            </p>
           </div>
           <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 border border-slate-300">
             <UserCircle size={28} />
