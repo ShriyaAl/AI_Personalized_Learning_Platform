@@ -1,13 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+const SUBJECT_STYLES = {
+  "Science & Nature": { icon: "🧪", color: "bg-[#98EECC]", cardColor: "bg-[#E1F8DC]" },
+  "Mathematics": { icon: "🔢", color: "bg-[#79E0EE]", cardColor: "bg-[#D1F3F8]" },
+  "History": { icon: "🏛️", color: "bg-[#FFB7B7]", cardColor: "bg-[#FFE5E5]" },
+  "Language Arts": { icon: "📚", color: "bg-[#FDE2F3]", cardColor: "bg-[#FDF4F5]" },
+  "Computer Science": { icon: "💻", color: "bg-[#C4B0FF]", cardColor: "bg-[#E5D4FF]" },
+  "Default": { icon: "🎓", color: "bg-[#E2E8F0]", cardColor: "bg-[#F8FAFC]" }
+};
 
 const Learn = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [courses, setCourses] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/courses');
+        const data = await res.json();
+        // Filter out drafts if necessary, maybe only show active
+        setCourses(data.filter(c => c.is_published));
+      } catch (error) {
+        console.error("Failed to fetch courses:", error);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const handleCourseClick = (courseId) => {
     navigate(`/learn-student/${courseId}`);
   };
+
+  // Group courses by subject
+  const groupedCourses = courses.reduce((acc, course) => {
+    const subject = course.subject || "Default";
+    if (!acc[subject]) acc[subject] = [];
+    acc[subject].push(course);
+    return acc;
+  }, {});
+
+  // Filter based on search query
+  const filteredGroups = Object.keys(groupedCourses).reduce((acc, subject) => {
+    const matchingCourses = groupedCourses[subject].filter(course => 
+      course.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    if (matchingCourses.length > 0) acc[subject] = matchingCourses;
+    return acc;
+  }, {});
 
   return (
     <div className="p-8 bg-[#fdfdfd] overflow-y-auto h-full scrollbar-hide font-mono relative">
@@ -45,72 +86,31 @@ const Learn = () => {
       </div>
 
       <div className="space-y-16 relative z-10">
-        {/* Subject Group: Science */}
-        <SubjectGroup title="Science & Nature" color="bg-[#98EECC]">
-          <CourseCard 
-            title="Botany & Plants" 
-            faculty="Dr. Greenleaf" 
-            icon="🌿" 
-            cardColor="bg-[#E1F8DC]" 
-            progress={100}
-            courseId="botany-plants"
-            onClick={handleCourseClick}
-          />
-          {/* This is the course linked to your Roadmap completion logic */}
-          <CourseCard 
-            title="States of Matter" 
-            faculty="Prof. Kelvin" 
-            icon="🧪" 
-            cardColor="bg-[#E1F8DC]" 
-            progress={67} 
-            courseId="states-of-matter"
-            onClick={handleCourseClick}
-          />
-          <CourseCard 
-            title="Astrophysics" 
-            faculty="Dr. Nova" 
-            icon="🚀" 
-            cardColor="bg-[#E1F8DC]" 
-            progress={0}
-            courseId="astrophysics"
-            onClick={handleCourseClick}
-          />
-        </SubjectGroup>
+        {Object.entries(filteredGroups).map(([subject, subjectCourses]) => {
+          const style = SUBJECT_STYLES[subject] || SUBJECT_STYLES["Default"];
+          return (
+            <SubjectGroup key={subject} title={subject} color={style.color}>
+              {subjectCourses.map(course => (
+                <CourseCard 
+                  key={course.id}
+                  title={course.title}
+                   
+                  icon={style.icon}
+                  cardColor={style.cardColor}
+                  progress={0} 
+                  courseId={course.id}
+                  onClick={handleCourseClick}
+                />
+              ))}
+            </SubjectGroup>
+          );
+        })}
 
-        {/* Subject Group: Mathematics */}
-        <SubjectGroup title="Mathematics" color="bg-[#79E0EE]">
-          <CourseCard 
-            title="Algebra Basics" 
-            faculty="Mr. X" 
-            icon="🔢" 
-            cardColor="bg-[#D1F3F8]" 
-            progress={75}
-            courseId="algebra-basics"
-            onClick={handleCourseClick}
-          />
-          <CourseCard 
-            title="Geometry" 
-            faculty="Ms. Angle" 
-            icon="📐" 
-            cardColor="bg-[#D1F3F8]" 
-            progress={10}
-            courseId="geometry"
-            onClick={handleCourseClick}
-          />
-        </SubjectGroup>
-
-        {/* Subject Group: History */}
-        <SubjectGroup title="History" color="bg-[#FFB7B7]">
-          <CourseCard 
-            title="Ancient Empires" 
-            faculty="Prof. Lore" 
-            icon="🏛️" 
-            cardColor="bg-[#FFE5E5]" 
-            progress={100}
-            courseId="ancient-empires"
-            onClick={handleCourseClick}
-          />
-        </SubjectGroup>
+        {Object.keys(filteredGroups).length === 0 && (
+          <div className="text-center font-bold text-xl py-10">
+            No courses found. Waiting for teachers to publish courses!
+          </div>
+        )}
       </div>
     </div>
   );

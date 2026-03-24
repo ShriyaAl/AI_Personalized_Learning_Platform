@@ -7,7 +7,7 @@ const authRouter = express.Router();
 
 const supabase = createClient(
   process.env.DATABASE_URL,
-  process.env.DATABASE_SERVICE_ROLE_KEY 
+  process.env.DATABASE_KEY 
 );
 
 

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import TeacherNavbar from "../../../Components/TeacherNavbar";
 import "./TeacherHome.css";
 import { auth, db } from "../../../utils/auth/initalizers/firebaseClient.js";
-import { supabase } from "../../../utils/supabaseClient.js";
 import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 
 const TeacherHome = () => {
@@ -19,35 +18,12 @@ const TeacherHome = () => {
       try {
         setLoading(true);
 
-        // 1. Fetch Stats from Supabase
-        const { data: coursesData } = await supabase
-          .from("courses")
-          .select("id")
-          .eq("teacher_id", user.uid);
-        
-        const { count: studentCount } = await supabase
-          .from("enrollments")
-          .select("*", { count: 'exact', head: true }); // Simplified for demo
-
-        const { data: groupsData } = await supabase
-          .from("groups")
-          .select("id")
-          .eq("teacher_id", user.uid);
-
-        setStats({
-          courses: coursesData?.length || 0,
-          students: studentCount || 0,
-          groups: groupsData?.length || 0
-        });
-
-        // 2. Fetch Notifications from Supabase
-        const { data: notifData } = await supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", user.uid)
-          .order("created_at", { ascending: false })
-          .limit(5);
-        setNotifications(notifData || []);
+        // 1. Fetch Stats and Notifications from Backend
+        const response = await fetch(`http://localhost:3000/api/dashboard/teacher/${user.uid}`);
+        if (!response.ok) throw new Error("Failed to fetch teacher dashboard data");
+        const { stats: newStats, notifications: notifData } = await response.json();
+        setStats(newStats);
+        setNotifications(notifData);
 
         // 3. Fetch Activity Feed from Firestore
         const activityQuery = query(

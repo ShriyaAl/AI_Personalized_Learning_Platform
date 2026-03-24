@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # Dependency directories
 node_modules
+**/node_modules
 dist
 dist-ssr
 
@@ -25,6 +26,9 @@ firebaseAdmin.json
 firebaseClient.json
 **/config/firebaseAdmin.json
 **/config/firebaseClient.json
+
+# Uploaded files (user uploads — do not commit)
+backend/uploads/
 
 # Editor directories and files
 .vscode/*
