@@ -1,10 +1,12 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { supabase } from '../config/supabaseClient.js';
+import { supabase } from '../db/supabase.js';
 import { adminDb } from '../db/firebaseAdmin.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+
+import { config } from '../config/index.js'; // Ensure this import is at the top
 
 // Helper for ESM and pdf-parse
 const require = createRequire(import.meta.url);
@@ -46,8 +48,8 @@ export const generateAIExplanation = async (req, res) => {
 
     if (error) throw error;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     let extractedText = '';
     let source = 'ai_knowledge';

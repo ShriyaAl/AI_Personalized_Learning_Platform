@@ -13,21 +13,37 @@ const SUBJECT_STYLES = {
 const Learn = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true); // Added for better UX
   const navigate = useNavigate();
 
+  // 1. Wrap the execution in useEffect
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/courses');
+        setLoading(true);
+        const res = await fetch('http://localhost:3000/api/courses', {
+          credentials: 'include'
+        });
         const data = await res.json();
-        // Filter out drafts if necessary, maybe only show active
-        setCourses(data.filter(c => c.is_published));
+
+        console.log("Server response:", data);
+
+        if (Array.isArray(data)) {
+          setCourses(data.filter(c => c.is_published));
+        } else {
+          setCourses([]);
+        }
       } catch (error) {
         console.error("Failed to fetch courses:", error);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchCourses();
-  }, []);
+  }, []); // 2. This [] is the "Stop Sign" for the infinite loop
+  
+
 
   const handleCourseClick = (courseId) => {
     navigate(`/learn-student/${courseId}`);

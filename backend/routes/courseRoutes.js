@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
-import { getCourses, createCourse } from '../controllers/courseController.js';
+import { getAllCourses, createCourse } from '../controllers/courseController.js';
 
 const router = express.Router();
 
@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(protect);
 
 // Students and Teachers can view courses
-router.get('/', getCourses);
+router.get('/', getAllCourses);
 
 // ONLY Teachers can create courses
 router.post('/', requireRole('teacher'), createCourse);
