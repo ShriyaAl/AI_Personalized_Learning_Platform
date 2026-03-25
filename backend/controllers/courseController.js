@@ -13,15 +13,19 @@ export const getAllCourses = async (req, res) => {
 
 export const getTeacherCourses = async (req, res) => {
   try {
-    // SECURE: Use req.user.uid from protect middleware if fetching own courses
     const teacherId = req.params.uid || req.user.uid;
+    
     const { data, error } = await supabase
       .from("courses")
       .select("*")
-      .eq("teacher_id", teacherId);
+      .eq("teacher_id", teacherId); // Remove .single() if it's there!
+
     if (error) throw error;
-    res.json(data);
+
+    // Even if data is null, send an empty array so the frontend .map works
+    res.json(data || []); 
   } catch (error) {
+    console.error("Fetch Teacher Courses Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -79,27 +83,63 @@ export const deleteCourse = async (req, res) => {
   }
 };
 
+// export const getCourseRoadmap = async (req, res) => {
+//   try {
+//     const { data: modules, error: modError } = await supabase
+//       .from("modules")
+//       .select("*")
+//       .eq("course_id", req.params.courseId)
+//       .order("order_index", { ascending: true });
+      
+//     if (modError) throw modError;
+//     if (!modules?.length) return res.json([]);
+
+//     const { data: lessons, error: lessError } = await supabase
+//       .from("lessons")
+//       .select("*")
+//       .in("module_id", modules.map(m => m.id))
+//       .order("order_index", { ascending: true });
+      
+//     if (lessError) throw lessError;
+
+//     res.json(modules.map(m => ({ ...m, lessons: lessons.filter(l => l.module_id === m.id) })));
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 export const getCourseRoadmap = async (req, res) => {
   try {
+    const { courseId } = req.params;
+
+    // 1. Get all modules for this course
     const { data: modules, error: modError } = await supabase
       .from("modules")
       .select("*")
-      .eq("course_id", req.params.courseId)
+      .eq("course_id", courseId)
       .order("order_index", { ascending: true });
-      
-    if (modError) throw modError;
-    if (!modules?.length) return res.json([]);
 
+    if (modError) throw modError;
+
+    // 2. Get all lessons for these modules
+    const moduleIds = modules.map(m => m.id);
     const { data: lessons, error: lessError } = await supabase
       .from("lessons")
       .select("*")
-      .in("module_id", modules.map(m => m.id))
+      .in("module_id", moduleIds)
       .order("order_index", { ascending: true });
-      
+
     if (lessError) throw lessError;
 
-    res.json(modules.map(m => ({ ...m, lessons: lessons.filter(l => l.module_id === m.id) })));
+    // 3. Map lessons into their respective modules
+    const roadmap = modules.map(m => ({
+      ...m,
+      lessons: lessons.filter(l => l.module_id === m.id)
+    }));
+
+    res.json(roadmap);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+

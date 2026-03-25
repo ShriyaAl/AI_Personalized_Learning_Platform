@@ -51,6 +51,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'Pinnacle Systems Online', timestamp: new Date() });
 });
 
+app.post("/api/upload", upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file provided" });
+  res.json({ filePath: req.file.filename });
+});
 // --- MOUNTED API ROUTERS ---
 
 // 1. Auth & Sync (Login, Token Verification, Role Sync)
@@ -68,12 +72,6 @@ app.use('/api/learning', learningRouter);
 // 4. Admin (User Creation, Teacher Registry, System Control)
 app.use('/api/admin', adminRouter);
 
-// --- SPECIAL UPLOAD ROUTE ---
-// Kept in app.js for easy access to 'upload' middleware
-app.post("/api/upload", upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file provided" });
-  res.json({ filePath: req.file.filename });
-});
 
 // --- 404 HANDLER ---
 app.use((req, res, next) => {

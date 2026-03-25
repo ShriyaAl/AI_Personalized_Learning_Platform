@@ -20,7 +20,7 @@ aiRouter.post('/quiz', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const contextSection = materialContext
       ? `\n      The student studied this material:\n      ---\n      ${materialContext.slice(0, 3000)}\n      ---\n      Generate ALL 5 questions based STRICTLY on this material content above.`
@@ -108,7 +108,7 @@ aiRouter.post('/tutor', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Call 1 - Silent gap analysis
     const analysisPrompt = `
@@ -265,7 +265,7 @@ aiRouter.post('/tutor/summary', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const summaryPrompt = `
       You are an expert learning analyst. A student just completed a Feynman Technique session on Photosynthesis.
@@ -326,7 +326,7 @@ aiRouter.post('/generate-roadmap', async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `
       You are an expert curriculum designer. Your task is to generate a structured learning roadmap.
       
@@ -427,7 +427,7 @@ aiRouter.post('/generate-roadmap', async (req, res) => {
 });
 
 // Helper to try multiple model names — skips models that are unavailable OR rate-limited
-async function generateWithFallback(genAI, prompt, primaryModel = "gemini-2.0-flash") {
+async function generateWithFallback(genAI, prompt, primaryModel = "gemini-2.5-flash") {
   // Ordered by preference: newest/most-quota-generous first
   const modelsToTry = [
     primaryModel,

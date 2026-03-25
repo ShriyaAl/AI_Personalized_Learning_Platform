@@ -23,6 +23,8 @@ import ManageQuizzes from './Pages/Teacher/Manage/ManageQuizzes'
 import Analytics from "./Pages/Teacher/Analytics/Analytics"
 import DiscussionForum from "./Pages/Teacher/DiscussionForum/DiscussionForum"
 import TeacherProfile from "./Pages/Teacher/Profile/Profile"
+import RoadmapView from './Pages/Teacher/Manage/RoadMapView'
+import LessonEditor from './Pages/Teacher/Manage/LessonEditor'
 
 // ADMIN PAGES (Professional/Formal Style)
 import AdminHome from './Pages/Admin/AdminHome'
@@ -33,6 +35,7 @@ import Login from './Pages/Login'
 import LandingPage from './Pages/LandingPage'
 import { AuthProvider } from './utils/auth/AuthContext'
 import ProtectedRoute from './utils/auth/ProtectedRoute'
+
 
 const AppContent = () => {
   const location = useLocation();
@@ -86,11 +89,10 @@ const AppContent = () => {
       {/* 3. PUBLIC & TEACHER ZONE */}
       {!isStudentPage && !isAdminPage && (
         <Routes>
-          {/* PUBLIC ROUTES - NO ProtectedRoute here! */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
 
-          {/* TEACHER ROUTES - Protected individually */}
+          {/* TEACHER ROUTES */}
           <Route path="/teacher-home" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherHome/></ProtectedRoute>} />
           <Route path="/manage-courses" element={<ProtectedRoute allowedRoles={['teacher']}><ManageCourses/></ProtectedRoute>} />
           <Route path="/manage-students" element={<ProtectedRoute allowedRoles={['teacher']}><ManageStudents/></ProtectedRoute>} />
@@ -100,8 +102,17 @@ const AppContent = () => {
           <Route path="/teacher-analytics" element={<ProtectedRoute allowedRoles={['teacher']}><Analytics/></ProtectedRoute>} />
           <Route path="/teacher-discussion" element={<ProtectedRoute allowedRoles={['teacher']}><DiscussionForum/></ProtectedRoute>} />
           <Route path="/teacher-profile" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherProfile/></ProtectedRoute>} />
+          
+          {/* 2. ADD THE ROADMAP AND EDITOR ROUTES HERE */}
+          <Route 
+            path="/teacher/course/:courseId/roadmap" 
+            element={<ProtectedRoute allowedRoles={['teacher']}><RoadmapView /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/teacher/edit-lesson/:lessonId" 
+            element={<ProtectedRoute allowedRoles={['teacher']}><LessonEditor /></ProtectedRoute>} 
+          />
 
-          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       )}
