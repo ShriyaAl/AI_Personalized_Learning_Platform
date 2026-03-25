@@ -5,42 +5,69 @@ const CourseModules = () => {
   const navigate = useNavigate();
   const { courseId } = useParams();
   const [expandedId, setExpandedId] = useState(null);
-  const [dbModules, setDbModules] = useState([]);
+  const [dbModules, setDbModules] = useState([]); // Initialized as array
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchRoadmap = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/courses/${courseId}/roadmap`);
+        setIsLoading(true);
+        // 1. ADDED credentials: 'include' to pass the HttpOnly Cookie/Session
+        const res = await fetch(`http://localhost:3000/api/courses/${courseId}/roadmap`, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        // 2. Handle unauthorized/failed sessions
+        if (res.status === 401) {
+          console.error("User is not authenticated. Redirecting...");
+          navigate('/login');
+          return;
+        }
+
         const data = await res.json();
-        setDbModules(data);
-        if (data.length > 0) {
-          setExpandedId(data[0].id); // Expand the first module by default
+
+        // 3. FIX for .map error: Ensure data is an array before setting state
+        if (Array.isArray(data)) {
+          setDbModules(data);
+          if (data.length > 0) {
+            setExpandedId(data[0].id); // Auto-expand first module
+          }
+        } else {
+          console.error("Backend returned object instead of array:", data);
+          setDbModules([]); // Fallback to empty array
         }
       } catch (err) {
-        console.error("Failed to fetch roadmap:", err);
+        console.error("Network or parsing error:", err);
+        setDbModules([]); 
       } finally {
         setIsLoading(false);
       }
     };
-    fetchRoadmap();
-  }, [courseId]);
 
-  // Transform DB modules into UI modules
-  const uiModules = dbModules.map((dbMod, modIndex) => {
+    if (courseId) {
+      fetchRoadmap();
+    }
+  }, [courseId, navigate]);
+
+  // 4. Safe Transformation Logic
+  const uiModules = (Array.isArray(dbModules) ? dbModules : []).map((dbMod, modIndex) => {
     const isFirstMod = modIndex === 0;
-    const modStatus = isFirstMod ? "continue" : "locked"; // Or unlock all for demo if preferred
+    
+    // Logic: First module is 'continue', others are 'locked'
+    const modStatus = isFirstMod ? "continue" : "locked";
 
     const subModules = (dbMod.lessons || []).map((lesson, lessonIndex) => ({
       id: lesson.id,
       title: lesson.title,
       type: lesson.type,
+      // Logic: Only the very first lesson is 'start', others 'locked'
       status: (isFirstMod && lessonIndex === 0) ? "start" : "locked", 
       icon: lesson.type === 'video' ? '▶️' : lesson.type === 'quiz' ? '❓' : '📄'
     }));
 
-    // Check localStorage overrides if we want dynamic testing
-    // For simplicity, we just keep the first lesson unlocked
     return {
       id: dbMod.id,
       title: dbMod.title,
@@ -54,7 +81,7 @@ const CourseModules = () => {
   if (isLoading) {
     return (
       <div className="p-10 bg-[#121212] min-h-screen font-mono flex items-center justify-center text-white">
-        <h2 className="text-3xl font-black italic animate-pulse">Loading Roadmap...</h2>
+        <h2 className="text-3xl font-black italic animate-pulse text-[#3b82f6]">SYNCHRONIZING ROADMAP...</h2>
       </div>
     );
   }
@@ -76,7 +103,6 @@ const CourseModules = () => {
             
             {/* --- MAIN MODULE CARD --- */}
             <div 
-              // Always allow expanding for demo purposes, even if locked
               onClick={() => setExpandedId(expandedId === mod.id ? null : mod.id)}
               className={`relative z-50 w-full max-w-2xl border-[6px] border-white rounded-[50px] p-8 shadow-[12px_12px_0px_0px_white] transition-all cursor-pointer
               ${mod.status === 'locked' ? 'bg-[#1a1a1a] opacity-80' : 'bg-black hover:-translate-y-1'}`}
@@ -86,7 +112,6 @@ const CourseModules = () => {
                  {mod.isFinished && <span className="bg-[#98EECC] text-black text-[10px] px-3 py-1 rounded-full font-black shadow-[2px_2px_0px_0px_black] rotate-3">MASTERED</span>}
                </div>
                
-               {/* Progress indicator */}
                <div className="mt-6 flex flex-col gap-4">
                  <div className="w-64 bg-zinc-900 border-4 border-white h-8 rounded-full p-1 overflow-hidden relative">
                    <div className="bg-[#3b82f6] h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${mod.progress}%` }}>
@@ -129,7 +154,6 @@ const CourseModules = () => {
             The teacher may still be preparing the AI syllabus.
           </div>
         )}
-
       </div>
 
       <style jsx="true">{`
@@ -144,7 +168,6 @@ const CourseModules = () => {
 
 const SubModuleCard = ({ id, icon, title, status, isLeft, currentCourseId }) => {
   const navigate = useNavigate();
-  // To allow hackathon testing, we'll let users click it even if locked, but change visually
   const isLocked = status === 'locked';
 
   return (
@@ -156,11 +179,10 @@ const SubModuleCard = ({ id, icon, title, status, isLeft, currentCourseId }) => 
       <div className={`flex flex-col min-w-[150px] ${isLeft ? 'items-end' : 'items-start'}`}>
         <h4 className="text-2xl font-black italic uppercase text-white leading-none">{title}</h4>
         
-        {/* Only show 'Start' if not completed. For demo, show it always if not completely locked, or allow testing anyway. */}
         <button 
-          onClick={() => navigate(`/learn-student/${currentCourseId}/${id}`)} 
+          onClick={() => !isLocked && navigate(`/learn-student/${currentCourseId}/${id}`)} 
           className={`mt-3 border-2 border-white px-4 py-1 rounded-full font-black text-[10px] shadow-[3px_3px_0px_0px_white] active:scale-95 uppercase italic
-          ${isLocked ? 'bg-zinc-600 text-zinc-400 opacity-50' : 'bg-[#3b82f6] text-white hover:bg-white hover:text-black'}`}
+          ${isLocked ? 'bg-zinc-600 text-zinc-400 opacity-50 cursor-not-allowed' : 'bg-[#3b82f6] text-white hover:bg-white hover:text-black'}`}
         >
           {isLocked ? 'Locked' : 'Start'}
         </button>
