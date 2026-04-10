@@ -14,17 +14,16 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // 1. Quiz Generation Endpoint
 aiRouter.post('/quiz', async (req, res) => {
-  const { subModuleId, courseId, diff, materialContext } = req.body;
+  const { subModuleId, courseId, lessonTitle, diff, materialContext } = req.body;
   if (!subModuleId || !courseId || !diff) {
     return res.status(400).json({ error: 'Missing required parameters' });
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
+    const topicName = lessonTitle || subModuleId;
     const contextSection = materialContext
       ? `\n      The student studied this material:\n      ---\n      ${materialContext.slice(0, 3000)}\n      ---\n      Generate ALL 5 questions based STRICTLY on this material content above.`
-      : `\n      Topic: ${subModuleId}. Course: ${courseId}.`;
+      : `\n      Topic: ${topicName}. Course: ${courseId}.`;
 
     console.log(`📝 Quiz generation: ${materialContext ? '✅ Using MATERIAL CONTENT (' + materialContext.length + ' chars)' : '⚠️  Using topic name only (no material)'}`);
 
@@ -50,7 +49,7 @@ aiRouter.post('/quiz', async (req, res) => {
       ]
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback(genAI, prompt, "gemini-1.5-flash");
     const text = result.response.text().trim().replace(/```json/g, '').replace(/```/g, '');
     const data = JSON.parse(text);
     
@@ -63,10 +62,10 @@ aiRouter.post('/quiz', async (req, res) => {
       console.log("Serving fallback quiz due to API quota or error.");
       const fallbackQuiz = [
         {
-          "question": `What is a core component of ${req.body.subModuleId || 'this submodule'}?`,
+          "question": `What is a core component of ${req.body.lessonTitle || req.body.subModuleId}?`,
           "options": ["Basic Feature A", "Core Principle B", "Advanced Concept C", "Technical Detail D"],
           "correct": 1,
-          "explanation": `This question explores the core principles of ${req.body.subModuleId}. (Fallback quiz served due to AI rate limit)`
+          "explanation": `This question explores the core principles of ${req.body.lessonTitle || req.body.subModuleId}. (Fallback quiz served due to AI rate limit)`
         },
         {
           "question": `Which of the following describes the goal of ${req.body.courseId || 'this course'}?`,
@@ -431,11 +430,11 @@ async function generateWithFallback(genAI, prompt, primaryModel = "gemini-2.5-fl
   // Ordered by preference: newest/most-quota-generous first
   const modelsToTry = [
     primaryModel,
+    "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
+    "gemini-flash-latest",
     "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash-8b",
+    "gemini-pro-latest",
     "gemini-pro",
   ].filter((m, i, arr) => arr.indexOf(m) === i); // deduplicate
 
@@ -663,4 +662,3 @@ aiRouter.post('/lesson-tutor/summary', async (req, res) => {
 
 
 export default aiRouter;
-

@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
       console.log("AUTH_DEBUG: Listener fired, user:", firebaseUser?.email); // LOG 2
       try {
         if (firebaseUser) {
-          const tokenResult = await firebaseUser.getIdTokenResult(true);
+          const tokenResult = await firebaseUser.getIdTokenResult(false);
           console.log("AUTH_DEBUG: Claims received:", tokenResult.claims); // LOG 3
           
           setUser({
@@ -30,7 +30,17 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error("Auth Context Error:", error);
-        setUser(null);
+        if (error?.code === 'auth/network-request-failed' && firebaseUser) {
+          // Keep session state during temporary internet outages.
+          setUser((prev) => prev || {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            role: 'student',
+          });
+        } else {
+          setUser(null);
+        }
       } finally {
         console.log("AUTH_DEBUG: Loading set to false"); // LOG 4
         setLoading(false);

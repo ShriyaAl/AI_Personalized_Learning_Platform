@@ -21,7 +21,7 @@ export const config = {
 };
 
 // Validation
-const required = ['FIREBASE_PROJECT_ID', 'DATABASE_URL', 'DATABASE_SERVICE_ROLE_KEY'];
+const required = ['DATABASE_URL', 'DATABASE_KEY', 'GEMINI_API_KEY'];
 required.forEach(key => {
-  if (!process.env[key]) throw new Error(`CRITICAL: Missing ${key} in .env`);
+  if (!process.env[key]) console.warn(`⚠️ WARNING: Missing ${key} in .env`);
 });

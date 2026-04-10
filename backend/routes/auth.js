@@ -73,4 +73,14 @@ authRouter.post('/sync-user', async (req, res) => {
   }
 });
 
+authRouter.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: false, // Set to FALSE for localhost/HTTP
+    sameSite: 'lax',
+    path: '/',
+  });
+  res.status(200).json({ message: 'User logged out and cookie cleared' });
+});
+
 export default authRouter;

@@ -30,6 +30,21 @@ firebaseClient.json
 # Uploaded files (user uploads — do not commit)
 backend/uploads/
 
+# Vite cache / timestamp files
+client/vite.config.js.timestamp-*
+
+# Dev/test scripts (not part of production)
+backend/test-gemini.js
+backend/test-gemini-prompt.js
+backend/list-models.js
+backend/models_list.json
+backend/db/learning_stats.json
+
+# Temp scratch files
+changed_files.txt
+untracked_files.txt
+status.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

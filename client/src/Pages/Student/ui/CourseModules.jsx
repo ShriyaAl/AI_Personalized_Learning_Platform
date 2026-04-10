@@ -12,15 +12,15 @@ const CourseModules = () => {
     const fetchRoadmap = async () => {
       try {
         setIsLoading(true);
-        // 1. ADDED credentials: 'include' to pass the HttpOnly Cookie/Session
-        const res = await fetch(`http://localhost:3000/api/courses/${courseId}/roadmap`, {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        const res = await fetch(`${baseUrl}/api/courses/${courseId}/roadmap`, {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json'
           }
         });
 
-        // 2. Handle unauthorized/failed sessions
+        // Handle unauthorized/failed sessions
         if (res.status === 401) {
           console.error("User is not authenticated. Redirecting...");
           navigate('/login');
