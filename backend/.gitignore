@@ -60,5 +60,6 @@ typings/
 # next.js build output
 .next
 
-config/
+config/firebaseAdmin.json
+config/firebaseClient.json
 utils/promoteAdmin.js

@@ -24,31 +24,37 @@ const LessonView = () => {
   const [buddySessionEnded, setBuddySessionEnded] = useState(false);
   const [buddyBreakdownData, setBuddyBreakdownData] = useState(null);
 
+  // Simplification State
+  const [simplificationLevel, setSimplificationLevel] = useState(0);
+  const [isSimplifying, setIsSimplifying] = useState(false);
+
+  // Learning Ability Score Modal
+  const [learningScoreModal, setLearningScoreModal] = useState(null);
+
 
   useEffect(() => {
     const fetchLesson = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/lessons/${subModuleId}`);
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        const res = await fetch(`${baseUrl}/api/learning/lessons/${subModuleId}`, { credentials: 'include' });
         const data = await res.json();
         setLessonData(data);
 
-        // If lesson has a file attached, fetch personalized content + raw text
-        if (data?.content_url) {
-          setIsLoadingContent(true);
-          try {
-            const contentRes = await fetch(`http://localhost:3000/api/lessons/${subModuleId}/personalized-content`);
-            const contentData = await contentRes.json();
-            if (contentData?.content) {
-              setPersonalizedContent(contentData.content);
-            }
-            if (contentData?.rawText) {
-              setMaterialRawText(contentData.rawText);
-            }
-          } catch (contentErr) {
-            console.error("Failed to fetch personalized content:", contentErr);
-          } finally {
-            setIsLoadingContent(false);
+        // Always fetch personalized content (if file exists, AI reads it; if not, AI generates from general knowledge)
+        setIsLoadingContent(true);
+        try {
+          const contentRes = await fetch(`${baseUrl}/api/learning/lessons/${subModuleId}/explain`, { credentials: 'include' });
+          const contentData = await contentRes.json();
+          if (contentData?.content) {
+            setPersonalizedContent(contentData.content);
           }
+          if (contentData?.rawText) {
+            setMaterialRawText(contentData.rawText);
+          }
+        } catch (contentErr) {
+          console.error("Failed to fetch personalized content:", contentErr);
+        } finally {
+          setIsLoadingContent(false);
         }
       } catch (err) {
         console.error("Failed to fetch lesson:", err);
@@ -65,7 +71,7 @@ const LessonView = () => {
     setShowQuiz(true);
   };
 
-  const handleQuizComplete = () => {
+  const handleQuizComplete = async (quizScore, quizAttempts) => {
     confetti({
       particleCount: 150,
       spread: 70,
@@ -73,11 +79,42 @@ const LessonView = () => {
       colors: ['#F3B8F8', '#98EECC', '#facc15', '#3b82f6', '#ffffff']
     });
 
-    localStorage.setItem(`pinnacle_submodule_${subModuleId}_status`, 'completed');
+    const basePoints = Math.round((quizScore / 5) * 60);
+    const attemptDeduction = Math.min((quizAttempts - 1) * 10, 20);
+    const simplifyDeduction = simplificationLevel * 5;
+    const feynmanBonus = Math.round((buddyBreakdownData?.overall_score || 0) * 0.15);
+    let totalScore = basePoints - attemptDeduction - simplifyDeduction + feynmanBonus;
+    if (totalScore < 0) totalScore = 0;
+    if (totalScore > 100) totalScore = 100;
 
-    setTimeout(() => {
-      navigate(`/learn-student/${courseId}`);
-    }, 1500);
+    setLearningScoreModal({
+      quizScore,
+      quizAttempts,
+      basePoints,
+      attemptDeduction,
+      simplifyDeduction,
+      feynmanBonus,
+      totalScore
+    });
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      await fetch(`${baseUrl}/api/learning/ability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score: totalScore }),
+        credentials: 'include'
+      });
+    } catch(err) {
+      console.error("Failed to save learning ability score:", err);
+    }
+
+    localStorage.setItem(`pinnacle_submodule_${subModuleId}_status`, 'completed');
+  };
+
+  const closeLearningScoreModal = () => {
+    setLearningScoreModal(null);
+    navigate(`/learn-student/${courseId}`);
   };
 
   const fetchVideoReference = async () => {
@@ -95,6 +132,29 @@ const LessonView = () => {
       console.error("Failed to fetch video:", err);
     } finally {
       setIsLoadingVideo(false);
+    }
+  };
+
+  const handleSimplify = async () => {
+    if (isSimplifying || !personalizedContent) return;
+    setIsSimplifying(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      const simplifyRes = await fetch(`${baseUrl}/api/learning/lessons/${subModuleId}/simplify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: personalizedContent, level: simplificationLevel + 1 }),
+        credentials: 'include'
+      });
+      const data = await simplifyRes.json();
+      if (data.content) {
+        setPersonalizedContent(data.content);
+        setSimplificationLevel(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error("Failed to simplify content:", err);
+    } finally {
+      setIsSimplifying(false);
     }
   };
 
@@ -275,10 +335,34 @@ const LessonView = () => {
                       <section className="bg-[#f0fff4] border-4 border-black p-8 rounded-[30px] shadow-[6px_6px_0px_0px_#98EECC]">
                         <h3 className="text-2xl font-black uppercase mb-4 flex items-center gap-3">
                           ✨ Personalized Lesson
-                          <span className="text-xs font-black bg-black text-[#98EECC] px-3 py-1 rounded-full uppercase">AI Generated</span>
                         </h3>
                         <div className="font-semibold text-base leading-relaxed text-zinc-800">
                           {renderPersonalizedContent(personalizedContent)}
+                        </div>
+                        
+                        {/* Make It Easy Button */}
+                        <div className="mt-8 flex justify-end">
+                          <button
+                            onClick={handleSimplify}
+                            disabled={isSimplifying || simplificationLevel >= 3}
+                            className={`flex items-center gap-3 px-6 py-3 rounded-2xl border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_black] transition-all
+                              ${isSimplifying || simplificationLevel >= 3 ? 'bg-zinc-200 text-zinc-500 cursor-not-allowed shadow-none translate-y-1 translate-x-1' 
+                                : 'bg-[#98EECC] text-black hover:bg-[#7beab8] hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:scale-95'}
+                            `}
+                          >
+                            <span>
+                              {isSimplifying 
+                                ? 'Simplifying...' 
+                                : simplificationLevel >= 3 
+                                  ? 'Max Simplicity Reached' 
+                                  : 'Make it Easy 🟢'}
+                            </span>
+                            {simplificationLevel > 0 && !isSimplifying && (
+                              <span className="bg-black text-[#98EECC] px-2 py-0.5 rounded-full text-xs">
+                                lvl {simplificationLevel}
+                              </span>
+                            )}
+                          </button>
                         </div>
                       </section>
                     ) : lessonData?.content_url && !isLoadingContent ? (
@@ -367,6 +451,7 @@ const LessonView = () => {
         <QuizSection 
           subModuleId={subModuleId} 
           courseId={courseId} 
+          lessonTitle={lessonData?.title}
           onComplete={handleQuizComplete}
           materialContext={materialRawText}
         />
@@ -643,6 +728,56 @@ const LessonView = () => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== LEARNING SCORE MODAL ===== */}
+      {learningScoreModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8">
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" onClick={closeLearningScoreModal} />
+          
+          <div className="relative z-[110] w-full max-w-lg bg-[#121212] border-[8px] border-[#98EECC] rounded-[50px] overflow-hidden shadow-[15px_15px_0px_0px_#facc15] font-mono p-8 text-center flex flex-col items-center">
+            
+            <div className="w-24 h-24 bg-[#98EECC] border-[6px] border-black rounded-full flex items-center justify-center text-5xl mb-6 shadow-[6px_6px_0px_0px_black] rotate-3">
+              🧠
+            </div>
+            
+            <h2 className="text-3xl font-black italic uppercase text-white mb-2 tracking-tighter">Learning Profile Updated</h2>
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-8">Performance Breakdown</p>
+
+            <div className="w-full space-y-4 mb-8 text-left">
+              <div className="flex justify-between items-center bg-white border-4 border-black p-4 rounded-2xl text-black">
+                 <span className="font-bold uppercase text-sm">Quiz Accuracy ({learningScoreModal.quizScore}/5)</span>
+                 <span className="font-black text-xl text-green-600">+{learningScoreModal.basePoints}</span>
+              </div>
+              <div className="flex justify-between items-center bg-white border-4 border-black p-4 rounded-2xl text-black">
+                 <span className="font-bold uppercase text-sm flex gap-2">Quiz Attempts <span className="bg-black text-white px-2 py-0.5 rounded text-[10px]">{learningScoreModal.quizAttempts}</span></span>
+                 <span className="font-black text-xl text-red-600">-{learningScoreModal.attemptDeduction}</span>
+              </div>
+              <div className="flex justify-between items-center bg-white border-4 border-black p-4 rounded-2xl text-black">
+                 <span className="font-bold uppercase text-sm">Make It Easy Used</span>
+                 <span className="font-black text-xl text-red-600">-{learningScoreModal.simplifyDeduction}</span>
+              </div>
+              <div className="flex justify-between items-center bg-[#F3B8F8] border-4 border-black p-4 rounded-2xl text-black">
+                 <span className="font-bold uppercase text-sm flex items-center gap-2">★ Feynman Bonus <span className="text-[10px] opacity-60">(Score: {buddyBreakdownData?.overall_score || 0})</span></span>
+                 <span className="font-black text-xl text-[#3b82f6]">+{learningScoreModal.feynmanBonus}</span>
+              </div>
+            </div>
+
+            <div className="w-full bg-[#facc15] border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_black] mb-8">
+               <span className="block text-sm font-black uppercase text-black mb-1">Total Learning Ability</span>
+               <div className="text-6xl font-black text-black">
+                 {learningScoreModal.totalScore}<span className="text-2xl opacity-50">/100</span>
+               </div>
+            </div>
+
+            <button 
+              onClick={closeLearningScoreModal}
+              className="w-full bg-white text-black py-5 rounded-[30px] font-black text-2xl border-4 border-black shadow-[8px_8px_0px_0px_#3b82f6] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all active:scale-95 uppercase italic"
+            >
+              Back to Roadmap →
+            </button>
           </div>
         </div>
       )}

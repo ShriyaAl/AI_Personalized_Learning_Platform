@@ -19,10 +19,11 @@ const ManageCourses = () => {
 
   const fetchCourses = async () => {
     try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
       const url = user?.uid 
-        ? `http://localhost:3000/api/courses/teacher/${user.uid}` 
-        : `http://localhost:3000/api/courses`;
-      const response = await fetch(url);
+        ? `${baseUrl}/api/courses/teacher/${user.uid}` 
+        : `${baseUrl}/api/courses`;
+      const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
       setCourses(data);
     } catch (error) {
@@ -82,9 +83,11 @@ const ManageCourses = () => {
       }
 
       // 3. Create course and roadmap in DB
-      const response = await fetch('http://localhost:3000/api/courses', {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/api/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ ...newCourse, teacher_id: user?.uid || null, roadmap })
       });
 
@@ -104,8 +107,10 @@ const ManageCourses = () => {
   const handleDeleteCourse = async (courseId) => {
     if (window.confirm("Are you sure you want to delete this course?")) {
       try {
-        const response = await fetch(`http://localhost:3000/api/courses/${courseId}`, {
-          method: 'DELETE'
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        const response = await fetch(`${baseUrl}/api/courses/${courseId}`, {
+          method: 'DELETE',
+          credentials: 'include'
         });
         if (response.ok) {
           setCourses(courses.filter(c => c.id !== courseId));

@@ -11,7 +11,8 @@ const CourseModules = () => {
   useEffect(() => {
     const fetchRoadmap = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/courses/${courseId}/roadmap`);
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        const res = await fetch(`${baseUrl}/api/courses/${courseId}/roadmap`, { credentials: 'include' });
         const data = await res.json();
         setDbModules(data);
         if (data.length > 0) {

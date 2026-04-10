@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 
-const QuizSection = ({ subModuleId, courseId, onComplete, materialContext }) => {
+const QuizSection = ({ subModuleId, courseId, lessonTitle, onComplete, materialContext }) => {
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [currentStep, setCurrentStep] = useState(0); 
@@ -17,7 +17,7 @@ const QuizSection = ({ subModuleId, courseId, onComplete, materialContext }) => 
       const response = await fetch('http://localhost:3000/api/ai/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subModuleId, courseId, diff, materialContext })
+        body: JSON.stringify({ subModuleId, courseId, lessonTitle, diff, materialContext })
       });
       if (!response.ok) throw new Error("Failed to generate quiz");
       const data = await response.json();
@@ -177,7 +177,7 @@ const QuizSection = ({ subModuleId, courseId, onComplete, materialContext }) => 
             <div>
               {passed ? (
                 <button 
-                  onClick={onComplete}
+                  onClick={() => onComplete(score, attempt)}
                   className="w-full bg-[#facc15] text-black py-6 rounded-[35px] font-black text-3xl border-[6px] border-black shadow-[12px_12px_0px_0px_black] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all active:scale-95 uppercase italic"
                 >
                   Claim Rewards & Continue →
