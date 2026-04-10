@@ -14,6 +14,8 @@ import aiRouter from "./routes/ai.js";
 import dashboardRouter from "./routes/dashboard.js";
 import videoRouter from "./routes/video.js";
 
+import { supabase } from './db/supabase.js';
+
 // Configuration
 dotenv.config();
 const app = express();
@@ -44,16 +46,31 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // --- PUBLIC ROUTES ---
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'Pinnacle Systems Online', timestamp: new Date() });
 });
 
-app.post("/api/upload", upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file provided" });
-  res.json({ filePath: req.file.filename });
+app.post("/api/upload", upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file provided" });
+
+    const fileName = `${Date.now()}-${req.file.originalname}`;
+    
+    const { data, error } = await supabase.storage
+      .from('materials') // Ensure this bucket exists in Supabase
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: true
+      });
+
+    if (error) throw error;
+    res.json({ filePath: data.path }); 
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 // --- MOUNTED API ROUTERS ---
 

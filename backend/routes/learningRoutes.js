@@ -1,21 +1,16 @@
 import express from 'express';
+import * as learningController from '../controllers/learningController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { 
-  getLesson, 
-  generateAIExplanation, 
-  getUserStreaks, 
-  createChatSession,
-  getUserProfile 
-} from '../controllers/learningController.js';
 
 const router = express.Router();
+router.use(protect);
 
-router.use(protect); // All learning routes require authentication
+router.get('/lesson/:id', learningController.getLesson);
+router.get('/generate-explanation/:id', learningController.generateAIExplanation);
+router.patch('/lesson/:id', learningController.updateLesson); 
 
-router.get('/lessons/:id', getLesson);
-router.get('/lessons/:id/explain', generateAIExplanation);
-router.get('/streaks', getUserStreaks);
-router.get('/profile', getUserProfile);
-router.post('/sessions', createChatSession);
+router.get('/streaks', learningController.getUserStreaks);
+router.get('/profile', learningController.getUserProfile);
+router.post('/sessions', learningController.createChatSession);
 
 export default router;
