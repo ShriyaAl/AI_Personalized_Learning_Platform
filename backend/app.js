@@ -9,11 +9,11 @@ import multer from 'multer';
 import authRouter from './routes/auth.js';
 import courseRouter from './routes/courseRoutes.js';
 import learningRouter from './routes/learningRoutes.js';
-import adminRouter from './routes/admin.js';
 import aiRouter from "./routes/ai.js";
 import dashboardRouter from "./routes/dashboard.js";
 import videoRouter from "./routes/video.js";
 import testRouter from "./routes/testRoute.js";
+import adminRouter from "./routes/adminRoutes.js"
 
 import { supabase } from './db/supabase.js';
 
