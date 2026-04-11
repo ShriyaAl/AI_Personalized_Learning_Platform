@@ -28,13 +28,11 @@ const ManageCourses = () => {
 
   const fetchCourses = async () => {
     try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
       const url = user?.uid 
-        ? `http://localhost:3000/api/courses/teacher/${user.uid}` 
-        : `http://localhost:3000/api/courses`;
-      
-      const response = await fetch(url, {
-        credentials: 'include' // Sends HttpOnly cookie
-      });
+        ? `${baseUrl}/api/courses/teacher/${user.uid}` 
+        : `${baseUrl}/api/courses`;
+      const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
 
       if (Array.isArray(data)) {
@@ -137,12 +135,13 @@ const ManageCourses = () => {
         return;
       }
 
-      // 3. Final Course Creation (With Credentials)
-      const response = await fetch('http://localhost:3000/api/courses', {
+      // 3. Create course and roadmap in DB
+      const createBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      const response = await fetch(`${createBaseUrl}/api/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newCourse, teacher_id: user?.uid, roadmap }),
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({ ...newCourse, teacher_id: user?.uid || null, roadmap })
       });
 
       if (response.ok) {
@@ -161,7 +160,8 @@ const ManageCourses = () => {
   const handleDeleteCourse = async (courseId) => {
     if (window.confirm("Are you sure you want to delete this course?")) {
       try {
-        const response = await fetch(`http://localhost:3000/api/courses/${courseId}`, {
+        const delBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        const response = await fetch(`${delBaseUrl}/api/courses/${courseId}`, {
           method: 'DELETE',
           credentials: 'include'
         });

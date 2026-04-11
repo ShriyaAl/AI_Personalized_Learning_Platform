@@ -34,50 +34,6 @@ export const getTeacherCourses = async (req, res) => {
   }
 };
 
-// export const createCourse = async (req, res) => {
-//   try {
-//     const { title, subject, description, roadmap } = req.body;
-//     const teacher_id = req.user.uid; // Securely mapped from token
-
-//     const { data: courseData, error: courseError } = await supabase
-//       .from("courses")
-//       .insert([{ title, subject, description, teacher_id, is_published: true }])
-//       .select();
-    
-//     if (courseError) throw courseError;
-//     const courseId = courseData[0].id;
-
-//     if (roadmap && Array.isArray(roadmap)) {
-//       for (let i = 0; i < roadmap.length; i++) {
-//         const moduleItem = roadmap[i];
-//         const { data: moduleData, error: modErr } = await supabase
-//           .from("modules")
-//           .insert([{ course_id: courseId, title: moduleItem.title, order_index: i, is_locked: i !== 0 }])
-//           .select();
-          
-//         if (modErr) throw modErr;
-//         const moduleId = moduleData[0].id;
-
-//         if (moduleItem.lessons) {
-//           const lessons = moduleItem.lessons.map((l, j) => ({
-//             module_id: moduleId,
-//             title: l.title,
-//             type: l.type || 'doc',
-//             content_url: l.content_url || null,
-//             order_index: j
-//           }));
-//           const { error: lessonErr } = await supabase.from("lessons").insert(lessons);
-//           if (lessonErr) throw lessonErr;
-//         }
-//       }
-//     }
-//     processCourseAIContent(courseId).catch(err => console.error("AI Background Error:", err));
-//     res.status(201).json(courseData[0]);
-//   } catch (error) {
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
 export const createCourse = async (req, res) => {
   try {
     const { title, subject, description, roadmap } = req.body;

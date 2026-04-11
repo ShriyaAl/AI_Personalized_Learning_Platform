@@ -13,6 +13,7 @@ import adminRouter from './routes/admin.js';
 import aiRouter from "./routes/ai.js";
 import dashboardRouter from "./routes/dashboard.js";
 import videoRouter from "./routes/video.js";
+import testRouter from "./routes/testRoute.js";
 
 import { supabase } from './db/supabase.js';
 
@@ -79,6 +80,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/videos', videoRouter);
+app.use('/api/test', testRouter);
 
 // 2. Courses (Management, Roadmaps, Modules)
 app.use('/api/courses', courseRouter);

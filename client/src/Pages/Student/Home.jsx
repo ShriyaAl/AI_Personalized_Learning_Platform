@@ -15,8 +15,13 @@ const Home = () => {
       try {
         setLoading(true);
         // Fetch Courses from Backend
-        const coursesResponse = await fetch('http://localhost:3000/api/dashboard/student/courses');
-        if (!coursesResponse.ok) throw new Error("Failed to fetch courses");
+        const coursesResponse = await fetch('http://localhost:3000/api/dashboard/student/courses', {
+          credentials: 'include',
+        });
+        if (!coursesResponse.ok) {
+          const errorPayload = await coursesResponse.json().catch(() => ({}));
+          throw new Error(errorPayload.error || "Failed to fetch courses");
+        }
         const coursesData = await coursesResponse.json();
         setCourses(coursesData || []);
 

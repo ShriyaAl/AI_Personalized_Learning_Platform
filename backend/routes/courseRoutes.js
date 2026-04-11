@@ -1,8 +1,7 @@
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/roleMiddleware.js';
-import { getAllCourses, getTeacherCourses, createCourse } from '../controllers/courseController.js';
-import { getCourseRoadmap } from '../controllers/courseController.js';
+import { getAllCourses, createCourse, getCourseRoadmap, getTeacherCourses, deleteCourse } from '../controllers/courseController.js';
 
 const router = express.Router();
 
@@ -12,14 +11,16 @@ router.use(protect);
 // Students and Teachers can view courses
 router.get('/', getAllCourses);
 
-router.get('/teacher/:uid', getTeacherCourses);
+// Teachers can view their own courses
+router.get('/teacher/:uid', requireRole('teacher'), getTeacherCourses);
+
+// Students and Teachers can view course roadmaps
+router.get('/:courseId/roadmap', getCourseRoadmap);
 
 // ONLY Teachers can create courses
 router.post('/', requireRole('teacher'), createCourse);
 
-router.get('/:courseId/roadmap', protect, getCourseRoadmap);
-
-// Route to get the full nested roadmap (Modules + Lessons)
-router.get('/:courseId/roadmap', protect, getCourseRoadmap);
+// ONLY Teachers can delete courses
+router.delete('/:id', requireRole('teacher'), deleteCourse);
 
 export default router;
