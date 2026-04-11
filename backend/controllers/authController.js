@@ -27,7 +27,7 @@ export const syncUser = async (req, res) => {
       role = role || 'student'; 
       const { error: insertError } = await supabase.from('users').insert({
         uid,
-        full_name: name || email.split('@')[0], // Using full_name to match admin registry
+        name: name || email.split('@')[0], // Using full_name to match admin registry
         email,
         role,
         avatar_url,

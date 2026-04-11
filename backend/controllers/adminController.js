@@ -7,38 +7,32 @@ import { supabase } from "../db/supabase.js";
 export const createUser = async (req, res) => {
   const { email, password, fullName, role } = req.body;
 
-  if (!email || !password || !role) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
   try {
-    // 1. Create User in Firebase Authentication
+    // 1. Create in Firebase
     const userRecord = await adminAuth.createUser({
       email,
       password,
       displayName: fullName,
     });
 
-    // 2. Set Custom Claims (role) for your roleMiddleware
-    await adminAuth.setCustomUserClaims(userRecord.uid, { role });
+    // 2. Set Role Claim (Essential for roleMiddleware)
+    await adminAuth.setCustomUserClaims(userRecord.uid, { role: role.toLowerCase() });
 
-    // 3. Store in Supabase 'users' table for registry listing
+    // 3. Save to Supabase Registry
     const { error: supabaseError } = await supabase
       .from("users")
-      .insert([
-        { 
-          uid: userRecord.uid, 
-          email, 
-          full_name: fullName, 
-          role: role.toLowerCase() 
-        }
-      ]);
+      .insert([{ 
+        uid: userRecord.uid, 
+        email, 
+        name: fullName, 
+        role: role.toLowerCase() 
+      }]);
 
     if (supabaseError) throw supabaseError;
 
-    res.status(201).json({ message: "User created successfully", uid: userRecord.uid });
+    res.status(201).json({ message: "User created successfully" });
   } catch (error) {
-    console.error("Admin Create User Error:", error);
+    console.error("Admin Create Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
